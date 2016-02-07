@@ -8,9 +8,7 @@ from xml.sax.saxutils import unescape
 def scan_post(post):
     global to_ban
 
-    #p = re.compile("^(RULE |(?P<radio>Posting Rule ))?(?P<our_rule>[0-9]+)(?(radio) - \w*)$", re.I)
-    p = re.compile("^(RULE )?(?P<our_rule>[0-9]+)$", re.I)
-    radio = re.compile("^Posting Rule (?P<our_rule>[0-9]+) - .*$")
+    p = re.compile("^(RULE |(?P<radio>Posting Rule ))?(?P<our_rule>[0-9]+)(?(radio) - \w*)$", re.I)
     s = re.compile("^(shadowban|sb)$", re.I)
     q = re.compile("^(question|q)$", re.I)
 
@@ -42,13 +40,8 @@ def scan_post(post):
 
         m = p.match(mod_report[0])
 
-        if not m:
-            m = radio.match(mod_report[0])
-
         if m:
             rule = int(m.group('our_rule'))
-
-
             if rule > len(reasons):
                 continue
 
