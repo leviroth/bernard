@@ -48,7 +48,7 @@ def scan_post(post):
             log_text = mod_report[1] + " removed " + post.fullname + \
                  " by " + str(post.author) + " [Rule " + str(rule) + "]"
 
-            our_footer = footer.replace("{url}", urllib2.quote(post.permalink))
+            our_footer = footer.replace("{url}", urllib2.quote(post.permalink.encode('utf8')))
             note_text = header + "\n\n" + reasons[rule - 1] + "\n\n" + our_footer
 
             remove_post(post, log_text, note_text)
