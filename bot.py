@@ -99,11 +99,15 @@ def update_bans():
 
 # Set up, log in, etc.
 
+sub_name = "philosophy"
+username = "BernardJOrtcutt"
+
 user_agent = "python:/r/Philosophy reporter:v0.2 (by /u/TheGrammarBolshevik)"
 r = praw.Reddit(user_agent=user_agent)
-r.login("BernardJOrtcutt")
-print "Login successful"
-our_sub = r.get_subreddit("philosophy")
+r.login(username, disable_warning=True)
+print "Logged in as " + username
+our_sub = r.get_subreddit(sub_name)
+print "Our subreddit: " + sub_name
 
 # Load removal reasons from the toolbox wiki page
 
