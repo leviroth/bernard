@@ -102,7 +102,7 @@ def update_bans():
 sub_name = "philosophy"
 username = "BernardJOrtcutt"
 
-user_agent = "python:/r/Philosophy reporter:v0.2 (by /u/TheGrammarBolshevik)"
+user_agent = "python:/r/Philosophy reporter:v0.3 (by /u/TheGrammarBolshevik)"
 r = praw.Reddit(user_agent=user_agent)
 r.login(username, disable_warning=True)
 print "Logged in as " + username
