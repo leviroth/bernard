@@ -25,38 +25,36 @@ def scan_post(post):
                 print "- Failed to remove " + post.fullname
                 return
 
-        if isinstance(mod_report, praw.objects.Comment):
-            continue
+        if isinstance(mod_report, praw.objects.Submission):
+            r_q = q.match(mod_report[0])
 
-        r_q = q.match(mod_report[0])
+            if r_q:
+                log_text = mod_report[1] + " removed " + post.fullname + \
+                     " by " + str(post.author) + " [Question]"
 
-        if r_q:
-            log_text = mod_report[1] + " removed " + post.fullname + \
-                 " by " + str(post.author) + " [Question]"
+                note_text = "Questions are best directed to /r/askphilosophy, which specializes in answers " + \
+                     "to philosophical questions!"
 
-            note_text = "Questions are best directed to /r/askphilosophy, which specializes in answers " + \
-                 "to philosophical questions!"
+                remove_post(post, log_text, note_text)
 
-            remove_post(post, log_text, note_text)
+                return
 
-            return
+            m = p.match(mod_report[0])
 
-        m = p.match(mod_report[0])
+            if m:
+                rule = int(m.group('our_rule'))
+                if rule > len(reasons):
+                    continue
 
-        if m:
-            rule = int(m.group('our_rule'))
-            if rule > len(reasons):
-                continue
+                log_text = mod_report[1] + " removed " + post.fullname + \
+                     " by " + str(post.author) + " [Rule " + str(rule) + "]"
 
-            log_text = mod_report[1] + " removed " + post.fullname + \
-                 " by " + str(post.author) + " [Rule " + str(rule) + "]"
+                our_footer = footer.replace("{url}", urllib2.quote(post.permalink.encode('utf8')))
+                note_text = header + "\n\n" + reasons[rule - 1] + "\n\n" + our_footer
 
-            our_footer = footer.replace("{url}", urllib2.quote(post.permalink.encode('utf8')))
-            note_text = header + "\n\n" + reasons[rule - 1] + "\n\n" + our_footer
+                remove_post(post, log_text, note_text)
 
-            remove_post(post, log_text, note_text)
-
-            return
+                return
 
 def remove_post(post, log_text, note_text):
     try:
