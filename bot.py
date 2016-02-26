@@ -25,6 +25,9 @@ def scan_post(post):
                 print "- Failed to remove " + post.fullname
                 return
 
+        if isinstance(mod_report, praw.objects.Comment):
+            continue
+
         r_q = q.match(mod_report[0])
 
         if r_q:
