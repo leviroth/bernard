@@ -8,7 +8,7 @@ from xml.sax.saxutils import unescape
 
 sql = sqlite3.connect('sql.db')
 cur = sql.cursor()
-cur.execute('CREATE TABLE IF NOT EXISTS actions(id INT PRIMARY KEY NOT NULL, mod TEXT, action TEXT, reason TEXT,' + \
+cur.execute('CREATE TABLE IF NOT EXISTS actions(mod TEXT, action TEXT, reason TEXT,' + \
         ' time DATETIME DEFAULT CURRENT_TIMESTAMP)')
 print 'Loaded SQL database'
 sql.commit()
