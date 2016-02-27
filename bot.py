@@ -8,27 +8,26 @@ from xml.sax.saxutils import unescape
 def scan_post(post):
     global to_ban
 
-    p = re.compile("^(RULE |(?P<radio>Posting Rule ))?(?P<our_rule>[0-9]+)(?(radio) - [\w ]*)$", re.I)
-    s = re.compile("^(shadowban|sb)$", re.I)
-    q = re.compile("^(question|q)$", re.I)
 
     for mod_report in post.mod_reports:
-        mis = s.match(mod_report[0])
-        if mis:
-            to_ban.append((str(post.author), post.permalink))
+        sb_check = re.compile("^(shadowban|sb)$", re.I)
 
+        if sb_check.match(mod_report[0]):
             print mod_report[1] + ' is shadowbanning ' + str(post.author)
 
             try:
                 post.remove()
-            except:
+            except Exception as e:
                 print "- Failed to remove " + post.fullname
-                return
+                print str(e)
+            else:
+                to_ban.append((str(post.author), post.permalink))
+            return
 
         if isinstance(post, praw.objects.Submission):
-            r_q = q.match(mod_report[0])
+            q_check = re.compile("^(question|q)$", re.I)
 
-            if r_q:
+            if q_check.match(mod_report[0]):
                 log_text = mod_report[1] + " removed " + post.fullname + \
                      " by " + str(post.author) + " [Question]"
 
@@ -39,7 +38,8 @@ def scan_post(post):
 
                 return
 
-            m = p.match(mod_report[0])
+            rule_check = re.compile("^(RULE |(?P<radio>Posting Rule ))?(?P<our_rule>[0-9]+)(?(radio) - [\w ]*)$", re.I)
+            m = rule_check.match(mod_report[0])
 
             if m:
                 rule = int(m.group('our_rule'))
@@ -59,22 +59,31 @@ def scan_post(post):
 def remove_post(post, log_text, note_text):
     try:
         post.remove()
-    except:
+    except Exception as e:
         print "- Failed to remove " + post.fullname
+        print str(e)
         return
 
     print log_text
 
     try:
+        post.lock()
+    except Exception as e:
+        print "- Failed to lock " + post.fullname
+        print str(e)
+
+    try:
         result = post.add_comment(note_text)
-    except:
-        print "* Failed to add comment on " + post.fullname
+    except Exception as e:
+        print "- Failed to add comment on " + post.fullname
+        print str(e)
         return
 
     try:
         result.distinguish()
-    except:
+    except Exception as e:
         print "* Failed to distinguish comment on " + post.fullname
+        print str(e)
 
     return
 
@@ -91,8 +100,9 @@ def update_bans():
 
     try:
         r.edit_wiki_page(our_sub, 'config/automoderator', new_content, "bans")
-    except:
+    except Exception as e:
         print "* Failed to update bans"
+        print str(e)
     else:
         print "Banned users"
         to_ban = []
@@ -123,24 +133,22 @@ reasons_page = our_sub.get_wiki_page("toolbox")
 j = json.loads(reasons_page.content_md)
 header = urllib2.unquote(j['removalReasons']['header'])
 footer = urllib2.unquote(j['removalReasons']['footer']) + our_foot
-reasons = map(lambda x: urllib2.unquote(x['text']), j['removalReasons']['reasons'])
+reasons = [urllib2.unquote(x['text']) for x in j['removalReasons']['reasons']]
 
 print "Successfully loaded removal reasons"
 
 to_ban = []
 
 while True:
-    reports = our_sub.get_reports(limit=None)
-
     try:
+        reports = our_sub.get_reports(limit=None)
+    except Exception as e:
+        print "Error fetching reports: " + str(e)
+    else:
         for post in reports:
             scan_post(post)
-    except:
-        print "- Error in fetching reports"
-        time.sleep(5)
-        continue
 
     if to_ban:
         update_bans()
 
-    time.sleep(60)
+    time.sleep(30)
