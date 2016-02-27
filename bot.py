@@ -29,8 +29,8 @@ def scan_post(post):
                 print str(e)
             else:
                 to_ban.append((str(post.author), post.permalink))
-                cur.execute('INSERT INTO actions (mod, action, reason, time) VALUES(?,?,?,NOW())', mod_report[1],
-                        'banned ' + str(post.author), post.permalink)
+                cur.execute('INSERT INTO actions (mod, action, reason, time) VALUES(?,?,?,NOW())', (mod_report[1],
+                        'banned ' + str(post.author), post.permalink))
                 sql.commit()
             return
 
@@ -70,8 +70,8 @@ def remove_post(post, mod, rule, note_text):
 
     log_text = mod + " removed " + post.fullname + " by " + str(post.author) + " " + rule
     print log_text
-    cur.execute('INSERT INTO actions (mod, action, reason, time) VALUES(?,?,?,NOW())', mod, "removed " + post.fullname + \
-            " by " + str(post.author), rule)
+    cur.execute('INSERT INTO actions (mod, action, reason, time) VALUES(?,?,?,NOW())', (mod, "removed " + post.fullname + \
+            " by " + str(post.author), rule))
     sql.commit()
 
     try:
