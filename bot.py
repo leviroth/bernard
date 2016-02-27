@@ -8,7 +8,8 @@ from xml.sax.saxutils import unescape
 
 sql = sqlite3.connect('sql.db')
 cur = sql.cursor()
-cur.execute('CREATE TABLE IF NOT EXISTS actions(id INT PRIMARY KEY NOT NULL, mod TEXT, action TEXT, reason TEXT, time INT)')
+cur.execute('CREATE TABLE IF NOT EXISTS actions(id INT PRIMARY KEY NOT NULL, mod TEXT, action TEXT, reason TEXT,' + \
+        ' time DATETIME DEFAULT CURRENT_TIMESTAMP)')
 print 'Loaded SQL database'
 sql.commit()
 
@@ -29,7 +30,7 @@ def scan_post(post):
                 print str(e)
             else:
                 to_ban.append((str(post.author), post.permalink))
-                cur.execute('INSERT INTO actions (mod, action, reason, time) VALUES(?,?,?,NOW())', (mod_report[1],
+                cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)', (mod_report[1],
                         'banned ' + str(post.author), post.permalink))
                 sql.commit()
             return
@@ -70,7 +71,7 @@ def remove_post(post, mod, rule, note_text):
 
     log_text = mod + " removed " + post.fullname + " by " + str(post.author) + " " + rule
     print log_text
-    cur.execute('INSERT INTO actions (mod, action, reason, time) VALUES(?,?,?,NOW())', (mod, "removed " + post.fullname + \
+    cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)', (mod, "removed " + post.fullname + \
             " by " + str(post.author), rule))
     sql.commit()
 
