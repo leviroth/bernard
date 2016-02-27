@@ -12,7 +12,6 @@ cur.execute('CREATE TABLE IF NOT EXISTS actions(id INT PRIMARY KEY NOT NULL, mod
 print 'Loaded SQL database'
 sql.commit()
 
-
 def scan_post(post):
     global to_ban
 
@@ -30,19 +29,19 @@ def scan_post(post):
                 print str(e)
             else:
                 to_ban.append((str(post.author), post.permalink))
+                cur.execute('INSERT INTO actions (mod, action, reason, time) VALUES(?,?,?,NOW())', mod_report[1],
+                        'banned ' + str(post.author), post.permalink)
+                sql.commit()
             return
 
         if isinstance(post, praw.objects.Submission):
             q_check = re.compile("^(question|q)$", re.I)
 
             if q_check.match(mod_report[0]):
-                log_text = mod_report[1] + " removed " + post.fullname + \
-                     " by " + str(post.author) + " [Question]"
-
                 note_text = "Questions are best directed to /r/askphilosophy, which specializes in answers " + \
                      "to philosophical questions!"
 
-                remove_post(post, log_text, note_text)
+                remove_post(post, mod_report[1], "Question", note_text)
 
                 return
 
@@ -54,17 +53,14 @@ def scan_post(post):
                 if rule > len(reasons):
                     continue
 
-                log_text = mod_report[1] + " removed " + post.fullname + \
-                     " by " + str(post.author) + " [Rule " + str(rule) + "]"
-
                 our_footer = footer.replace("{url}", urllib2.quote(post.permalink.encode('utf8')))
                 note_text = header + "\n\n" + reasons[rule - 1] + "\n\n" + our_footer
 
-                remove_post(post, log_text, note_text)
+                remove_post(post, mod_report[1], "Rule " + str(rule), note_text)
 
                 return
 
-def remove_post(post, log_text, note_text):
+def remove_post(post, mod, rule, note_text):
     try:
         post.remove()
     except Exception as e:
@@ -72,7 +68,11 @@ def remove_post(post, log_text, note_text):
         print str(e)
         return
 
+    log_text = mod + " removed " + post.fullname + " by " + str(post.author) + " " + rule
     print log_text
+    cur.execute('INSERT INTO actions (mod, action, reason, time) VALUES(?,?,?,NOW())', mod, "removed " + post.fullname + \
+            " by " + str(post.author), rule)
+    sql.commit()
 
     try:
         post.lock()
