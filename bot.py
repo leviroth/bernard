@@ -93,7 +93,13 @@ def update_bans():
     names = ', '.join([a for (a, b) in to_ban])
     reasons = '\n'.join(['#' + ': '.join(a) for a in to_ban])
 
-    automod_config = r.get_wiki_page(our_sub, 'config/automoderator')
+    try:
+        automod_config = r.get_wiki_page(our_sub, 'config/automoderator')
+    except Exception as e:
+        print "Failed to load automod bans"
+        print str(e)
+        return
+
     new_content = unescape(automod_config.content_md)
     new_content = new_content.replace('#do_not_remove_a', reasons + '\n#do_not_remove_a')
     new_content = new_content.replace('do_not_remove_b', 'do_not_remove_b, ' + names)
