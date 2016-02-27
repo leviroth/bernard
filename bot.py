@@ -3,7 +3,15 @@ import json
 import urllib2
 import re
 import time
+import sqlite3
 from xml.sax.saxutils import unescape
+
+sql = sqlite3.connect('sql.db')
+cur = sql.cursor()
+cur.execute('CREATE TABLE IF NOT EXISTS actions(id INT PRIMARY KEY NOT NULL, mod TEXT, action TEXT, reason TEXT, time INT)')
+print 'Loaded SQL database'
+sql.commit()
+
 
 def scan_post(post):
     global to_ban
@@ -109,6 +117,7 @@ def update_bans():
     except Exception as e:
         print "* Failed to update bans"
         print str(e)
+        return
     else:
         print "Banned users"
         to_ban = []
