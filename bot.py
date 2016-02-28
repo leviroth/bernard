@@ -6,7 +6,7 @@ import time
 import sqlite3
 from xml.sax.saxutils import unescape
 
-sql = sqlite3.connect('sql.db')
+sql = sqlite3.connect('server/sql.db')
 cur = sql.cursor()
 cur.execute('CREATE TABLE IF NOT EXISTS actions(mod TEXT, action TEXT, reason TEXT,' + \
         ' time DATETIME DEFAULT CURRENT_TIMESTAMP)')
