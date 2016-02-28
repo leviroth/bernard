@@ -158,11 +158,10 @@ to_ban = []
 while True:
     try:
         reports = our_sub.get_reports(limit=None)
-    except Exception as e:
-        print "Error fetching reports: " + str(e)
-    else:
         for post in reports:
             scan_post(post)
+    except Exception as e:
+        print "Error fetching reports: " + str(e)
 
     if to_ban:
         update_bans()
