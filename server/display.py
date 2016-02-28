@@ -11,15 +11,11 @@ cur = sql.cursor()
 class index:
     def GET(self):
         cur.execute('SELECT time, mod, action, reason FROM actions ORDER BY ROWID DESC')
-        body = "<html><head><title>foo</title></head><body><table>"
-        for row in cur.fetchall():
-            body += "<tr>"
-            for col in row:
-                body += "<td>" + str(col) + "</td>"
-            body += "</tr>"
-        body += "</table></body></html>"
+        #rows = [(1,2),(3,4)]
+        rows = cur.fetchall()
+        return tmpl.index(rows)
 
-        return body
+tmpl = web.template.render('templates')
 
 if __name__ == "__main__":
     app = web.application(urls, globals())
