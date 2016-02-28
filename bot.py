@@ -69,7 +69,7 @@ def remove_post(post, mod, rule, note_text):
         print str(e)
         return
 
-    log_text = mod + " removed " + post.fullname + " by " + str(post.author) + " " + rule
+    log_text = mod + " removed " + post.fullname + " by " + str(post.author) + " [" + rule + "]"
     print log_text
     cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)', (mod, "removed " + post.fullname + \
             " by " + str(post.author), rule))
