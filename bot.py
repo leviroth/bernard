@@ -46,6 +46,21 @@ def scan_post(post):
 
                 return
 
+            dev_check = re.compile("^(d|dev|develop)$", re.I)
+
+            if dev_check.match(mod_report[0]):
+                note_text = "Posts on this subreddit need to not only have a philosophical subject matter, " + \
+                        "but must also present this subject matter in a developed manner. At a minimum, this " + \
+                        "includes: stating the problem being addressed; stating the thesis; stating how the " + \
+                        "thesis contributes to the problem; outlining some alternative answers to the same " + \
+                        "problem; saying something about why the stated thesis is preferable to the alternatives;" + \
+                        "anticipating some objections to the stated thesis and giving responses to them. " + \
+                        "These are just the minimum requirements.\n\n" + our_footer
+
+                remove_post(post, mod_report[1], "Underdeveloped", note_text)
+
+                return
+
             rule_check = re.compile("^(RULE |(?P<radio>Posting Rule ))?(?P<our_rule>[0-9]+)(?(radio) - [\w ]*)$", re.I)
             m = rule_check.match(mod_report[0])
 
@@ -54,7 +69,6 @@ def scan_post(post):
                 if rule > len(reasons):
                     continue
 
-                our_footer = footer.replace("{url}", urllib2.quote(post.permalink.encode('utf8')))
                 note_text = header + "\n\n" + reasons[rule - 1] + "\n\n" + our_footer
 
                 remove_post(post, mod_report[1], "Rule " + str(rule), note_text)
@@ -149,6 +163,7 @@ reasons_page = our_sub.get_wiki_page("toolbox")
 j = json.loads(reasons_page.content_md)
 header = urllib2.unquote(j['removalReasons']['header'])
 footer = urllib2.unquote(j['removalReasons']['footer']) + our_foot
+our_footer = footer.replace("{url}", urllib2.quote(post.permalink.encode('utf8')))
 reasons = [urllib2.unquote(x['text']) for x in j['removalReasons']['reasons']]
 
 print "Successfully loaded removal reasons"
