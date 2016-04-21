@@ -103,7 +103,7 @@ def remove_post(post, mod, rule, note_text):
         return
 
     try:
-        result.distinguish()
+        result.distinguish(sticky=True)
     except Exception as e:
         print "* Failed to distinguish comment on " + post.fullname
         print str(e)
