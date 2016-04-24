@@ -13,132 +13,150 @@ cur.execute('CREATE TABLE IF NOT EXISTS actions(mod TEXT, action TEXT, reason TE
 print 'Loaded SQL database'
 sql.commit()
 
-def scan_post(post):
-    global to_ban
+# TODO: Need to figure out how logging will work
 
+class Checker:
+    def __init__(self, footed=False):
+        self.footed = footed
 
-    for mod_report in post.mod_reports:
-        sb_check = re.compile("^(shadowban|sb)$", re.I)
+    def check(self, report):
+        if self.regex.match(report):
+            return {}
 
-        if sb_check.match(mod_report[0]):
-            print mod_report[1] + ' is shadowbanning ' + str(post.author)
-
-            try:
-                post.remove()
-            except Exception as e:
-                print "- Failed to remove " + post.fullname
-                print str(e)
-            else:
-                to_ban.append((str(post.author), post.permalink))
-                cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)', (mod_report[1],
-                        'banned ' + str(post.author), post.permalink))
-                sql.commit()
+    def action(self, post, mod, rule=self.rule, note_text=self.note_text):
+        try:
+            post.remove()
+        except Exception as e:
+            print "- Failed to remove " + post.fullname
+            print str(e)
             return
 
-        if isinstance(post, praw.objects.Submission):
-            q_check = re.compile("^(question|q)$", re.I)
+        log_text = mod + " removed " + post.fullname + " by " + \
+                str(post.author) + " [" + rule + "]"
+        print log_text
+        cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)',
+                (mod, "removed " + post.fullname + \ " by " + str(post.author),
+                    rule))
+        sql.commit()
 
-            if q_check.match(mod_report[0]):
-                note_text = "Questions are best directed to /r/askphilosophy, which specializes in answers " + \
-                     "to philosophical questions!"
+        try:
+            post.lock()
+        except Exception as e:
+            print "- Failed to lock " + post.fullname
+            print str(e)
 
-                remove_post(post, mod_report[1], "Question", note_text)
+        try:
+            result = post.add_comment(note_text)
+        except Exception as e:
+            print "- Failed to add comment on " + post.fullname
+            print str(e)
+            return
 
-                return
+        try:
+            result.distinguish(sticky=True)
+        except Exception as e:
+            print "* Failed to distinguish comment on " + post.fullname
+            print str(e)
 
-            dev_check = re.compile("^(d|dev|develop)$", re.I)
+    def after(self):
+        pass
 
-            if dev_check.match(mod_report[0]):
-                our_footer = footer.replace("{url}", urllib2.quote(post.permalink.encode('utf8')))
-                note_text = "Posts on this subreddit need to not only have a philosophical subject matter, " + \
-                        "but must also present this subject matter in a developed manner. At a minimum, this " + \
-                        "includes: stating the problem being addressed; stating the thesis; stating how the " + \
-                        "thesis contributes to the problem; outlining some alternative answers to the same " + \
-                        "problem; saying something about why the stated thesis is preferable to the alternatives;" + \
-                        "anticipating some objections to the stated thesis and giving responses to them. " + \
-                        "These are just the minimum requirements.\n\n" + our_footer
+class ShadowBanner(Checker):
+    def __init__(self):
+        self.to_ban = []
+        self.regex = re.compile("^(shadowban|sb)$", re.I)
 
-                remove_post(post, mod_report[1], "Underdeveloped", note_text)
+    def action(self, post, mod):
+        try:
+            post.remove()
+        except Exception as e:
+            print "- Failed to remove " + post.fullname
+            print str(e)
+        else:
+            self.to_ban.append((str(post.author), post.permalink))
 
-                return
+            #cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)', (mod_report[1],
+            #        'banned ' + str(post.author), post.permalink))
+            #sql.commit()
 
-            rule_check = re.compile("^(RULE |(?P<radio>Posting Rule ))?(?P<our_rule>[0-9]+)(?(radio) - [\w ]*)$", re.I)
-            m = rule_check.match(mod_report[0])
+    def after(self):
+        if not self.to_ban:
+            return
 
-            if m:
-                rule = int(m.group('our_rule'))
-                if rule > len(reasons):
-                    continue
+        names = ', '.join([a for (a, b) in self.to_ban])
+        reasons = '\n'.join(['#' + ': '.join(a) for a in self.to_ban])
 
-                our_footer = footer.replace("{url}", urllib2.quote(post.permalink.encode('utf8')))
-                note_text = header + "\n\n" + reasons[rule - 1] + "\n\n" + our_footer
+        try:
+            automod_config = r.get_wiki_page(our_sub, 'config/automoderator')
+        except Exception as e:
+            print "Failed to load automod bans"
+            print str(e)
+            return
 
-                remove_post(post, mod_report[1], "Rule " + str(rule), note_text)
+        new_content = unescape(automod_config.content_md)
+        new_content = new_content.replace('#do_not_remove_a', reasons + \
+                '\n#do_not_remove_a')
+        new_content = new_content.replace('do_not_remove_b',
+                'do_not_remove_b, ' + names)
 
-                return
+        try:
+            r.edit_wiki_page(our_sub, 'config/automoderator', new_content,
+                    "bans")
+        except Exception as e:
+            print "* Failed to update bans"
+            print str(e)
+            return
+        else:
+            print "Banned users"
+            self.to_ban = []
 
-def remove_post(post, mod, rule, note_text):
-    try:
-        post.remove()
-    except Exception as e:
-        print "- Failed to remove " + post.fullname
-        print str(e)
-        return
+class QuestionChecker(Checker):
+    def __init__(self):
+        self.regex = re.compile("^(question|q)$", re.I)
+        self.rule = "Question"
+        self.note_text = ("Questions are best directed to /r/askphilosophy, "
+                "which specializes in answers to philosophical questions!")
 
-    log_text = mod + " removed " + post.fullname + " by " + str(post.author) + " [" + rule + "]"
-    print log_text
-    cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)', (mod, "removed " + post.fullname + \
-            " by " + str(post.author), rule))
-    sql.commit()
+class DevelopmentChecker(Checker):
+    def __init__(self):
+        self.regex = re.compile("^(d|dev|develop)$", re.I)
+        self.rule = "Underdeveloped"
+        self.note_text = ("Posts on this subreddit need to not only have a "
+                "philosophical subject matter, but must also present this "
+                "subject matter in a developed manner. At a minimum, this "
+                "includes: stating the problem being addressed; stating the "
+                "thesis; stating how the thesis contributes to the problem; "
+                "outlining some alternative answers to the same problem; "
+                "something about why the stated thesis is preferable to the "
+                "alternatives; anticipating some objections to the stated "
+                "thesis and giving responses to them. These are just the "
+                "minimum requirements.")
+        super(Checker, self).__init__(True)
 
-    try:
-        post.lock()
-    except Exception as e:
-        print "- Failed to lock " + post.fullname
-        print str(e)
+# TODO: Make reasons a proper instance attribute
 
-    try:
-        result = post.add_comment(note_text)
-    except Exception as e:
-        print "- Failed to add comment on " + post.fullname
-        print str(e)
-        return
+class RuleChecker(Checker):
+    def __init__(self):
+        self.regex = re.compile("^(RULE |(?P<radio>Posting Rule ))?"
+                "(?P<our_rule>[0-9]+)(?(radio) - [\w ]*)$", re.I)
+        super(Checker, self).__init__(True)
 
-    try:
-        result.distinguish(sticky=True)
-    except Exception as e:
-        print "* Failed to distinguish comment on " + post.fullname
-        print str(e)
+    def check(self, report):
+        m = self.regex.match(report)
 
-    return
+        if m:
+            rule = int(m.group('our_rule'))
+            if rule > len(reasons):
+                return None
+
+            return {"rule": rule}
+
+def scan_post(post):
+    for mod_report in post.mod_reports:
 
 
-def update_bans():
-    global to_ban
-    names = ', '.join([a for (a, b) in to_ban])
-    reasons = '\n'.join(['#' + ': '.join(a) for a in to_ban])
 
-    try:
-        automod_config = r.get_wiki_page(our_sub, 'config/automoderator')
-    except Exception as e:
-        print "Failed to load automod bans"
-        print str(e)
-        return
-
-    new_content = unescape(automod_config.content_md)
-    new_content = new_content.replace('#do_not_remove_a', reasons + '\n#do_not_remove_a')
-    new_content = new_content.replace('do_not_remove_b', 'do_not_remove_b, ' + names)
-
-    try:
-        r.edit_wiki_page(our_sub, 'config/automoderator', new_content, "bans")
-    except Exception as e:
-        print "* Failed to update bans"
-        print str(e)
-        return
-    else:
-        print "Banned users"
-        to_ban = []
-
+#our_footer = footer.replace("{url}", urllib2.quote(post.permalink.encode('utf8')))
 
 # Set up, log in, etc.
 
