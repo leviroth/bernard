@@ -14,6 +14,8 @@ print 'Loaded SQL database'
 sql.commit()
 
 # TODO: Need to figure out how logging will work
+# TODO: Footers
+# TODO: Clean up configuration
 
 class Checker:
     def __init__(self, footed=False):
@@ -153,8 +155,11 @@ class RuleChecker(Checker):
 
 def scan_post(post):
     for mod_report in post.mod_reports:
-
-
+        for checker in checkers:
+            result = checker.check(mod_report[0])
+            if type(result) = dict:
+                checker.action(post, mod_report[1], **result)
+                return
 
 #our_footer = footer.replace("{url}", urllib2.quote(post.permalink.encode('utf8')))
 
@@ -197,7 +202,7 @@ while True:
     except Exception as e:
         print "Error fetching reports: " + str(e)
 
-    if to_ban:
-        update_bans()
+    for checker in checkers:
+        checker.after()
 
     time.sleep(30)
