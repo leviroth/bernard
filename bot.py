@@ -13,21 +13,25 @@ cur.execute('CREATE TABLE IF NOT EXISTS actions(mod TEXT, action TEXT, reason '
 print 'Loaded SQL database'
 sql.commit()
 
-# TODO: Need to figure out how logging will work
-# TODO: Footers
+# TODO: Logging of shadowbans
 # TODO: Clean up configuration
 
 
 class Checker:
-    def __init__(self, footed=False):
-        self.footed = footed
+    def __init__(self, posts_only=False):
+        self.posts_only = posts_only
 
     def check(self, report):
         if self.regex.match(report):
             return {}
 
     # TODO: Looks like we can't use self for the defaults
-    def action(self, post, mod, rule=self.rule, note_text=self.note_text):
+    def action(self, post, mod, rule=None, note_text=None):
+        if rule is None:
+            rule = self.rule
+        if note_text is None:
+            note_text = self.note_text
+
         try:
             post.remove()
         except Exception as e:
@@ -72,6 +76,8 @@ class ShadowBanner(Checker):
         self.regex = re.compile("^(shadowban|sb)$", re.I)
 
     def action(self, post, mod):
+        print mod + ' is shadowbanning ' + str(post.author)
+
         try:
             post.remove()
         except Exception as e:
@@ -124,6 +130,7 @@ class QuestionChecker(Checker):
                 "Questions are best directed to /r/askphilosophy, "
                 "which specializes in answers to philosophical questions!"
                 )
+        Checker.__init__(self, True)
 
 
 class DevelopmentChecker(Checker):
@@ -142,7 +149,7 @@ class DevelopmentChecker(Checker):
                 "thesis and giving responses to them. These are just the "
                 "minimum requirements."
                 )
-        super(Checker, self).__init__(True)
+        Checker.__init__(self, True)
 
 # TODO: Make reasons a proper instance attribute
 
@@ -154,7 +161,7 @@ class RuleChecker(Checker):
                 "(?(radio) - [\w ]*)$",
                 re.I
                 )
-        super(Checker, self).__init__(True)
+        Checker.__init__(self, True)
 
     def check(self, report):
         m = self.regex.match(report)
@@ -166,20 +173,31 @@ class RuleChecker(Checker):
 
             return {"rule": rule}
 
+    def action(self, post, mod, **kwargs):
+        rule = kwargs['rule']
+        our_footer = footer.replace(
+                "{url}", urllib2.quote(post.permalink.encode('utf8'))
+                )
+        note_text = header + "\n\n" + reasons[rule - 1] + "\n\n" + our_footer
+
+        Checker.action(self, post, mod, "Rule " + str(rule), note_text)
+
 
 def scan_post(post):
     for mod_report in post.mod_reports:
         for checker in checkers:
+            if checker.posts_only and not isinstance(post,
+                                                     praw.objects.Submission):
+                return
             result = checker.check(mod_report[0])
             if type(result) == dict:
                 checker.action(post, mod_report[1], **result)
                 return
 
-#our_footer = footer.replace("{url}", urllib2.quote(post.permalink.encode('utf8')))
 
 # Set up, log in, etc.
 
-sub_name = "philosophy"
+sub_name = "ThirdRealm"
 username = "BernardJOrtcutt"
 
 user_agent = "python:/r/Philosophy reporter:v0.3 (by /u/TheGrammarBolshevik)"
@@ -205,6 +223,11 @@ footer = urllib2.unquote(j['removalReasons']['footer']) + our_foot
 reasons = [urllib2.unquote(x['text']) for x in j['removalReasons']['reasons']]
 
 print "Successfully loaded removal reasons"
+
+checkers = [ShadowBanner(),
+            QuestionChecker(),
+            DevelopmentChecker(),
+            RuleChecker()]
 
 to_ban = []
 
