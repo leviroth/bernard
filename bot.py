@@ -8,14 +8,15 @@ from xml.sax.saxutils import unescape
 
 sql = sqlite3.connect('server/sql.db')
 cur = sql.cursor()
-cur.execute('CREATE TABLE IF NOT EXISTS actions(mod TEXT, action TEXT, reason TEXT,' + \
-        ' time DATETIME DEFAULT CURRENT_TIMESTAMP)')
+cur.execute('CREATE TABLE IF NOT EXISTS actions(mod TEXT, action TEXT, reason '
+            'TEXT, time DATETIME DEFAULT CURRENT_TIMESTAMP)')
 print 'Loaded SQL database'
 sql.commit()
 
 # TODO: Need to figure out how logging will work
 # TODO: Footers
 # TODO: Clean up configuration
+
 
 class Checker:
     def __init__(self, footed=False):
@@ -25,6 +26,7 @@ class Checker:
         if self.regex.match(report):
             return {}
 
+    # TODO: Looks like we can't use self for the defaults
     def action(self, post, mod, rule=self.rule, note_text=self.note_text):
         try:
             post.remove()
@@ -34,11 +36,11 @@ class Checker:
             return
 
         log_text = mod + " removed " + post.fullname + " by " + \
-                str(post.author) + " [" + rule + "]"
+            str(post.author) + " [" + rule + "]"
         print log_text
         cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)',
-                (mod, "removed " + post.fullname + \ " by " + str(post.author),
-                    rule))
+                    (mod, "removed " + post.fullname + " by " +
+                     str(post.author), rule))
         sql.commit()
 
         try:
@@ -62,6 +64,7 @@ class Checker:
 
     def after(self):
         pass
+
 
 class ShadowBanner(Checker):
     def __init__(self):
@@ -96,14 +99,14 @@ class ShadowBanner(Checker):
             return
 
         new_content = unescape(automod_config.content_md)
-        new_content = new_content.replace('#do_not_remove_a', reasons + \
-                '\n#do_not_remove_a')
+        new_content = new_content.replace('#do_not_remove_a', reasons +
+                                          '\n#do_not_remove_a')
         new_content = new_content.replace('do_not_remove_b',
-                'do_not_remove_b, ' + names)
+                                          'do_not_remove_b, ' + names)
 
         try:
             r.edit_wiki_page(our_sub, 'config/automoderator', new_content,
-                    "bans")
+                             "bans")
         except Exception as e:
             print "* Failed to update bans"
             print str(e)
@@ -112,18 +115,23 @@ class ShadowBanner(Checker):
             print "Banned users"
             self.to_ban = []
 
+
 class QuestionChecker(Checker):
     def __init__(self):
         self.regex = re.compile("^(question|q)$", re.I)
         self.rule = "Question"
-        self.note_text = ("Questions are best directed to /r/askphilosophy, "
-                "which specializes in answers to philosophical questions!")
+        self.note_text = (
+                "Questions are best directed to /r/askphilosophy, "
+                "which specializes in answers to philosophical questions!"
+                )
+
 
 class DevelopmentChecker(Checker):
     def __init__(self):
         self.regex = re.compile("^(d|dev|develop)$", re.I)
         self.rule = "Underdeveloped"
-        self.note_text = ("Posts on this subreddit need to not only have a "
+        self.note_text = (
+                "Posts on this subreddit need to not only have a "
                 "philosophical subject matter, but must also present this "
                 "subject matter in a developed manner. At a minimum, this "
                 "includes: stating the problem being addressed; stating the "
@@ -132,15 +140,20 @@ class DevelopmentChecker(Checker):
                 "something about why the stated thesis is preferable to the "
                 "alternatives; anticipating some objections to the stated "
                 "thesis and giving responses to them. These are just the "
-                "minimum requirements.")
+                "minimum requirements."
+                )
         super(Checker, self).__init__(True)
 
 # TODO: Make reasons a proper instance attribute
 
+
 class RuleChecker(Checker):
     def __init__(self):
-        self.regex = re.compile("^(RULE |(?P<radio>Posting Rule ))?"
-                "(?P<our_rule>[0-9]+)(?(radio) - [\w ]*)$", re.I)
+        self.regex = re.compile(
+                "^(RULE |(?P<radio>Posting Rule ))?(?P<our_rule>[0-9]+)"
+                "(?(radio) - [\w ]*)$",
+                re.I
+                )
         super(Checker, self).__init__(True)
 
     def check(self, report):
@@ -153,11 +166,12 @@ class RuleChecker(Checker):
 
             return {"rule": rule}
 
+
 def scan_post(post):
     for mod_report in post.mod_reports:
         for checker in checkers:
             result = checker.check(mod_report[0])
-            if type(result) = dict:
+            if type(result) == dict:
                 checker.action(post, mod_report[1], **result)
                 return
 
