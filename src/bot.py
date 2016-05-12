@@ -205,7 +205,7 @@ class RuleChecker(Checker):
 
 
 class SubredditBrowser:
-    def __init__(self, sub_name, username, user_agent):
+    def __init__(self, sub_name, username, user_agent, checkers):
         self.sub_name = sub_name
         self.username = username
         self.user_agent = user_agent
@@ -226,11 +226,9 @@ class SubredditBrowser:
         self.footer = urllib2.unquote(j['removalReasons']['footer']) + our_foot
         self.reasons = [urllib2.unquote(x['text'])
                         for x in j['removalReasons']['reasons']]
+        print "Successfully loaded removal reasons"
 
-        self.checkers = [ShadowBanner(self),
-                         QuestionChecker(self),
-                         DevelopmentChecker(self),
-                         RuleChecker(self)]
+        self.checkers = [checker(self) for checker in checkers]
 
     def scan_post(self, post):
         for mod_report in post.mod_reports:
@@ -261,7 +259,12 @@ if __name__ == '__main__':
     user_agent = ("python:/r/Philosophy reporter:v1.0 "
                   "(by /u/TheGrammarBolshevik)")
 
-    our_browser = SubredditBrowser(sub_name, username, user_agent)
+    our_browser = SubredditBrowser(sub_name, username, user_agent,
+                                   [ShadowBanner,
+                                    QuestionChecker,
+                                    DevelopmentChecker,
+                                    RuleChecker]
+                                   )
 
     while True:
         our_browser.scan_reports()
