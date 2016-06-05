@@ -6,12 +6,6 @@ import time
 import sqlite3
 from xml.sax.saxutils import unescape
 
-sql = sqlite3.connect('server/sql.db')
-cur = sql.cursor()
-cur.execute('CREATE TABLE IF NOT EXISTS actions(mod TEXT, action TEXT, reason '
-            'TEXT, time DATETIME DEFAULT CURRENT_TIMESTAMP)')
-print 'Loaded SQL database'
-sql.commit()
 
 
 class Checker:
@@ -39,10 +33,10 @@ class Checker:
         log_text = mod + " removed " + post.fullname + " by " + \
             str(post.author) + " [" + rule + "]"
         print log_text
-        cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)',
+        self.browser.cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)',
                     (mod, "removed " + post.fullname + " by " +
                      str(post.author), rule))
-        sql.commit()
+        self.browser.sql.commit()
 
         # Build note text
 
@@ -99,10 +93,10 @@ class ShadowBanner(Checker):
         else:
             self.to_ban.append((str(post.author), post.permalink))
 
-            cur.execute('INSERT INTO actions (mod, action, reason) '
+            self.browser.cur.execute('INSERT INTO actions (mod, action, reason) '
                         'VALUES(?,?,?)', (mod, 'banned ' + str(post.author),
                                           post.permalink))
-            sql.commit()
+            self.browser.sql.commit()
 
     def after(self):
         if not self.to_ban:
@@ -205,7 +199,13 @@ class RuleChecker(Checker):
 
 
 class SubredditBrowser:
-    def __init__(self, sub_name, username, user_agent, checkers):
+    def __init__(self, sub_name, username, user_agent, checkers, db_file):
+        self.sql = sqlite3.connect(db_file)
+        self.cur = self.sql.cursor()
+        self.cur.execute('CREATE TABLE IF NOT EXISTS actions(mod TEXT, action TEXT, reason '
+                    'TEXT, time DATETIME DEFAULT CURRENT_TIMESTAMP)')
+        print 'Loaded SQL database'
+        self.sql.commit()
         self.sub_name = sub_name
         self.username = username
         self.user_agent = user_agent
@@ -258,12 +258,14 @@ if __name__ == '__main__':
     username = "BernardJOrtcutt"
     user_agent = ("python:/r/Philosophy reporter:v1.0 "
                   "(by /u/TheGrammarBolshevik)")
+    db_file = 'server/sql.db'
 
     our_browser = SubredditBrowser(sub_name, username, user_agent,
                                    [ShadowBanner,
                                     QuestionChecker,
                                     DevelopmentChecker,
-                                    RuleChecker]
+                                    RuleChecker],
+                                   db_file
                                    )
 
     while True:
