@@ -6,8 +6,6 @@ import time
 import sqlite3
 from xml.sax.saxutils import unescape
 
-
-
 class Checker:
     def __init__(self, browser):
         self.browser = browser
@@ -199,8 +197,8 @@ class RuleChecker(Checker):
 
 
 class SubredditBrowser:
-    def __init__(self, sub_name, username, user_agent, checkers, db_file):
-        self.sql = sqlite3.connect(db_file)
+    def __init__(self, sub_name, username, user_agent, checkers, sql, password=None):
+        self.sql = sql
         self.cur = self.sql.cursor()
         self.cur.execute('CREATE TABLE IF NOT EXISTS actions(mod TEXT, action TEXT, reason '
                     'TEXT, time DATETIME DEFAULT CURRENT_TIMESTAMP)')
@@ -210,7 +208,7 @@ class SubredditBrowser:
         self.username = username
         self.user_agent = user_agent
         self.r = praw.Reddit(user_agent=user_agent)
-        self.r.login(username, disable_warning=True)
+        self.r.login(username, password=password, disable_warning=True)
         print "Logged in as " + username
         self.sub = self.r.get_subreddit(sub_name)
 
@@ -258,14 +256,14 @@ if __name__ == '__main__':
     username = "BernardJOrtcutt"
     user_agent = ("python:/r/Philosophy reporter:v1.0 "
                   "(by /u/TheGrammarBolshevik)")
-    db_file = 'server/sql.db'
+    sql = sqlite3.connect('server/sql.db')
 
     our_browser = SubredditBrowser(sub_name, username, user_agent,
                                    [ShadowBanner,
                                     QuestionChecker,
                                     DevelopmentChecker,
                                     RuleChecker],
-                                   db_file
+                                   sql
                                    )
 
     while True:
