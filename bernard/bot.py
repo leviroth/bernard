@@ -207,7 +207,8 @@ class SubredditBrowser:
         self.cur = self.sql.cursor()
         self.cur.execute('CREATE TABLE IF NOT EXISTS actions(mod TEXT, action TEXT, reason '
                     'TEXT, time DATETIME DEFAULT CURRENT_TIMESTAMP)')
-        self.cur.execute('CREATE TABLE IF NOT EXISTS notifications(target TEXT, comment TEXT)')
+        self.cur.execute('CREATE TABLE IF NOT EXISTS notifications'
+                    '(target TEXT, comment TEXT, reinstated INT DEFAULT 0)')
         print 'Loaded SQL database'
         self.sql.commit()
         self.sub_name = sub_name
@@ -217,7 +218,6 @@ class SubredditBrowser:
         self.r.login(username, password=password, disable_warning=True)
         print "Logged in as " + username
         self.sub = self.r.get_subreddit(sub_name)
-        self.last_approval = None
 
         our_foot = (
             "\n\n-----\n\nI am a bot. Please do not reply to this message, as "
@@ -259,16 +259,13 @@ class SubredditBrowser:
 
     def check_approvals(self):
         try:
-            log = list(self.sub.get_mod_log(action='approvelink', place_holder=self.last_approval))
+            log = self.sub.get_mod_log(action='approvelink')
         except Exception as e:
             print "Couldn't get mod log: " + str(e)
         else:
-            if log:
-                self.last_approval = log[0].id
-                log.pop()
             for action in log:
-                self.cur.execute('SELECT comment FROM notifications WHERE target = ? LIMIT 1',
-                        (action.target_fullname,))
+                self.cur.execute('SELECT comment FROM notifications WHERE target = ? AND reinstated = ? LIMIT 1',
+                        (action.target_fullname, False))
                 row = self.cur.fetchone()
                 if row:
                     try:
@@ -278,6 +275,9 @@ class SubredditBrowser:
                         post.unlock()
                     except Exception as e:
                         print "Couldn't reinstate post: " + str(e)
+                    else:
+                        self.cur.execute('UPDATE notifications SET reinstated = ? WHERE target = ?',
+                                (action.target_fullname, True))
 
 
 if __name__ == '__main__':
