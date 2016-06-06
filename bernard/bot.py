@@ -62,6 +62,11 @@ class Checker:
             print "- Failed to add comment on " + post.fullname
             print str(e)
             return
+        else:
+            self.browser.cur.execute('INSERT INTO notifications '
+                    '(target, comment) VALUES(?,?)',
+                    (post.fullname, result.fullname))
+            self.browser.sql.commit()
 
         try:
             result.distinguish(sticky=True)
@@ -202,6 +207,7 @@ class SubredditBrowser:
         self.cur = self.sql.cursor()
         self.cur.execute('CREATE TABLE IF NOT EXISTS actions(mod TEXT, action TEXT, reason '
                     'TEXT, time DATETIME DEFAULT CURRENT_TIMESTAMP)')
+        self.cur.execute('CREATE TABLE IF NOT EXISTS notifications(target TEXT, comment TEXT)')
         print 'Loaded SQL database'
         self.sql.commit()
         self.sub_name = sub_name
@@ -211,6 +217,7 @@ class SubredditBrowser:
         self.r.login(username, password=password, disable_warning=True)
         print "Logged in as " + username
         self.sub = self.r.get_subreddit(sub_name)
+        self.last_approval = None
 
         our_foot = (
             "\n\n-----\n\nI am a bot. Please do not reply to this message, as "
@@ -250,6 +257,28 @@ class SubredditBrowser:
         for checker in self.checkers:
             checker.after()
 
+    def check_approvals(self):
+        try:
+            log = list(self.sub.get_mod_log(action='approvelink', place_holder=self.last_approval))
+        except Exception as e:
+            print "Couldn't get mod log: " + str(e)
+        else:
+            if log:
+                self.last_approval = log[0].id
+                log.pop()
+            for action in log:
+                self.cur.execute('SELECT comment FROM notifications WHERE target = ? LIMIT 1',
+                        (action.target_fullname,))
+                row = self.cur.fetchone()
+                if row:
+                    try:
+                        comment = self.r.get_info(thing_id=row[0])
+                        comment.remove()
+                        post = self.r.get_info(thing_id=action.target_fullname)
+                        post.unlock()
+                    except Exception as e:
+                        print "Couldn't reinstate post: " + str(e)
+
 
 if __name__ == '__main__':
     sub_name = "philosophy"
@@ -268,4 +297,5 @@ if __name__ == '__main__':
 
     while True:
         our_browser.scan_reports()
+        our_browser.check_approvals()
         time.sleep(30)
