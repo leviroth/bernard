@@ -14,7 +14,6 @@ class Checker:
         if self.regex.match(report):
             return {}
 
-    # TODO: Looks like we can't use self for the defaults
     def action(self, post, mod, rule=None, note_text=None):
         if rule is None:
             rule = self.rule
@@ -172,6 +171,53 @@ class DevelopmentChecker(Checker):
 
 # TODO: Make reasons a proper instance attribute, maybe
 
+class WarningChecker(Checker):
+    def __init__(self, browser):
+        self.regex = re.compile("^(w|warn)$", re.I)
+        self.rule = "Comment Rule 1"
+        self.posts_only = True
+        self.note_text = (
+                "I'd like to take a moment to remind everyone of our "
+                "first commenting rule:\n\n>*Read the post before you "
+                "reply.*\n\n>Read the posted content, understand and identify "
+                "the philosophical arguments given, and respond to these "
+                "substantively. If you have unrelated thoughts or don't wish "
+                "to read the content, please post your own thread or simply "
+                "refrain from commenting. Comments which are clearly not in "
+                "direct response to the posted content may be removed.\n\n"
+                "This sub is not in the business of one-liners, tangential "
+                "anecdotes, or dank memes. Expect comment threads that break "
+                "our rules to be removed."
+                )
+        Checker.__init__(self, browser)
+
+    def action(self, post, mod):
+        rule = self.rule
+        note_text = self.note_text
+
+        log_text = mod + " added comment rule warning on " + post.fullname + " by " + \
+            str(post.author)
+        print log_text
+        self.browser.cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)',
+                    (mod, "added comment warning on " + post.fullname + " by " +
+                     str(post.author), rule))
+        self.browser.sql.commit()
+
+        # Build note text
+
+        try:
+            result = post.add_comment(note_text)
+        except Exception as e:
+            print "- Failed to add comment on " + post.fullname
+            print str(e)
+            return
+
+        try:
+            result.distinguish(sticky=True)
+        except Exception as e:
+            print "* Failed to distinguish comment on " + post.fullname
+            print str(e)
+
 
 class RuleChecker(Checker):
     def __init__(self, browser):
@@ -291,7 +337,8 @@ if __name__ == '__main__':
                                    [ShadowBanner,
                                     QuestionChecker,
                                     DevelopmentChecker,
-                                    RuleChecker],
+                                    RuleChecker,
+                                    WarningChecker],
                                    sql
                                    )
 

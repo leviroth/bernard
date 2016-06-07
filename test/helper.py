@@ -22,5 +22,6 @@ class BJOTest(unittest.TestCase):
                 [bot.ShadowBanner,
                  bot.QuestionChecker,
                  bot.DevelopmentChecker,
-                 bot.RuleChecker],
+                 bot.RuleChecker,
+                 bot.WarningChecker],
                 sql, password='123456')

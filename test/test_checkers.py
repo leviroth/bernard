@@ -33,6 +33,7 @@ class CheckerTest(BJOTest):
         post = self.browser.r.get_submission(submission_id=post_id)
         self.checker.action(post, 'TGB')
 
+        time.sleep(10)
         post.refresh()
         self.assertIsNotNone(post.banned_by)
         self.assertTrue(post.locked)
@@ -75,6 +76,24 @@ class DevelopmentCheckerTest(BJOTest):
         self.assertIsNotNone(self.checker.check('dev'))
         self.assertIsNotNone(self.checker.check('develop'))
         self.assertIsNone(self.checker.check('1'))
+
+class WarningCheckerTest(BJOTest):
+    def test_check(self):
+        self.checker = bot.WarningChecker(self.browser)
+        self.assertIsNotNone(self.checker.check('w'))
+        self.assertIsNotNone(self.checker.check('warn'))
+        self.assertIsNone(self.checker.check('1'))
+
+    def test_action(self):
+        self.checker = bot.WarningChecker(self.browser)
+        self.r.login(self.un, password=self.un_pswd, disable_warning=True)
+        post_id = self.r.submit(self.sr, 'WarningCheckerTest.test_action', text='', send_replies=False).id
+        post = self.browser.r.get_submission(submission_id=post_id)
+        self.checker.action(post, 'TGB')
+
+        post.refresh()
+        self.assertTrue(post.comments[0].stickied)
+        self.assertFalse(post.locked)
 
 class ShadowBannerTest(BJOTest):
     def test_check(self):
