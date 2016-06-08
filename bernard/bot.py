@@ -324,6 +324,7 @@ class SubredditBrowser:
                     else:
                         self.cur.execute('UPDATE notifications SET reinstated = ? WHERE target = ?',
                                 (action.target_fullname, True))
+                        self.sql.commit()
 
 
 if __name__ == '__main__':
