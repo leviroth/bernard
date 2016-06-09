@@ -304,11 +304,8 @@ class SubredditBrowser:
             checker.after()
 
     def check_approvals(self):
+        log = self.sub.get_mod_log(action='approvelink')
         try:
-            log = self.sub.get_mod_log(action='approvelink')
-        except Exception as e:
-            print "Couldn't get mod log: " + str(e)
-        else:
             for action in log:
                 self.cur.execute('SELECT comment FROM notifications WHERE target = ? AND reinstated = ? LIMIT 1',
                         (action.target_fullname, False))
@@ -325,6 +322,8 @@ class SubredditBrowser:
                         self.cur.execute('UPDATE notifications SET reinstated = ? WHERE target = ?',
                                 (True, action.target_fullname))
                         self.sql.commit()
+        except Exception as e:
+            print "Couldn't get mod log: " + str(e)
 
 
 if __name__ == '__main__':
