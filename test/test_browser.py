@@ -38,3 +38,7 @@ class BrowserTest(BJOTest):
         post.refresh()
         self.assertFalse(post.locked)
         self.assertIsNone(post.banned_by)
+
+        with mock.patch('praw.objects.Comment.remove') as mock_comment_remove:
+            self.browser.check_approvals()
+            self.assertFalse(mock_comment_remove.called)
