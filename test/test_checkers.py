@@ -129,3 +129,21 @@ class ShadowBannerTest(BJOTest):
 
         self.browser.r.edit_wiki_page(self.browser.sub, 'config/automoderator',
                 wiki_text)
+
+class NukeCheckerTest(BJOTest):
+    def test_check(self):
+        self.checker = bot.NukeChecker(self.browser)
+        self.assertIsNotNone(self.checker.check('n'))
+        self.assertIsNotNone(self.checker.check('nuke'))
+        self.assertIsNone(self.checker.check('q'))
+
+    def test_action(self):
+        self.checker = bot.NukeChecker(self.browser)
+        post = self.browser.r.get_submission(url='https://www.reddit.com/r/ThirdRealm/comments/4nj6vw/nuketesttest_action/d44bqfg')
+        self.checker.action(post.comments[0], 'TGB')
+
+        post.refresh()
+        comments = praw.helpers.flatten_tree(post.comments)
+        for comment in comments:
+            self.assertTrue(comment.banned_by)
+            comment.approve()

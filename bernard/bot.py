@@ -81,7 +81,7 @@ class ShadowBanner(Checker):
     def __init__(self, browser):
         self.to_ban = []
         self.regex = re.compile("^(shadowban|sb)$", re.I)
-        self.posts_only = False
+        self.types = set([praw.objects.Submission, praw.objects.Comment])
         Checker.__init__(self, browser)
 
     def action(self, post, mod):
@@ -142,7 +142,7 @@ class QuestionChecker(Checker):
                 "Questions are best directed to /r/askphilosophy, "
                 "which specializes in answers to philosophical questions!"
                 )
-        self.posts_only = True
+        self.types = set([praw.objects.Submission])
         self.header = False
         self.footer = False
         Checker.__init__(self, browser)
@@ -164,7 +164,7 @@ class DevelopmentChecker(Checker):
                 "thesis and giving responses to them. These are just the "
                 "minimum requirements."
                 )
-        self.posts_only = True
+        self.types = set([praw.objects.Submission])
         self.header = False
         self.footer = True
         Checker.__init__(self, browser)
@@ -175,7 +175,7 @@ class WarningChecker(Checker):
     def __init__(self, browser):
         self.regex = re.compile("^(w|warn)$", re.I)
         self.rule = "Comment Rule 1"
-        self.posts_only = True
+        self.types = set([praw.objects.Submission])
         self.note_text = (
                 "I'd like to take a moment to remind everyone of our "
                 "first commenting rule:\n\n>*Read the post before you "
@@ -218,6 +218,18 @@ class WarningChecker(Checker):
             print "* Failed to distinguish comment on " + post.fullname
             print str(e)
 
+class NukeChecker(Checker):
+    def __init__(self, browser):
+        self.regex = re.compile('^(n|nuke)$', re.I)
+        self.types = set([praw.objects.Comment])
+        Checker.__init__(self, browser)
+
+    def action(self, post, mod):
+        tree = praw.objects.Submission.from_url(self.browser.r, post.permalink)
+        tree.replace_more_comments()
+        comments = praw.helpers.flatten_tree(tree.comments)
+        for comment in comments:
+            comment.remove()
 
 class RuleChecker(Checker):
     def __init__(self, browser):
@@ -226,7 +238,7 @@ class RuleChecker(Checker):
                 "(?(radio) - [\w ]*)$",
                 re.I
                 )
-        self.posts_only = True
+        self.types = set([praw.objects.Submission])
         self.header = True
         self.footer = True
         Checker.__init__(self, browser)
@@ -284,8 +296,7 @@ class SubredditBrowser:
     def scan_post(self, post):
         for mod_report in post.mod_reports:
             for checker in self.checkers:
-                if checker.posts_only \
-                        and not isinstance(post, praw.objects.Submission):
+                if post.__class__ not in checker.types:
                     return
                 result = checker.check(mod_report[0])
                 if type(result) == dict:
