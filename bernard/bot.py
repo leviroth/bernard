@@ -11,8 +11,12 @@ class Checker:
         self.browser = browser
 
     def check(self, report):
-        if self.regex.match(report):
-            return {}
+        result = self.regex.match(report)
+
+        if result is not None:
+            return result.groupdict()
+        else:
+            return None
 
     def action(self, post, mod, rule=None, note_text=None):
         if rule is None:
@@ -220,21 +224,29 @@ class WarningChecker(Checker):
 
 class NukeChecker(Checker):
     def __init__(self, browser):
-        self.regex = re.compile('^(n|nuke)$', re.I)
+        self.regex = re.compile('^(n|nuke)( (?<rule>[0-9]+))$', re.I)
         self.types = set([praw.objects.Comment])
         Checker.__init__(self, browser)
 
-    def action(self, post, mod):
+    def action(self, post, mod, **kwargs):
         tree = praw.objects.Submission.from_url(self.browser.r, post.permalink)
         tree.replace_more_comments()
         comments = praw.helpers.flatten_tree(tree.comments)
         for comment in comments:
             comment.remove()
 
+        if 'rule' in kwargs:
+            rule = int(kwargs['rule'])
+            if rule > len(self.browser.comment_rules):
+                return
+
+# TODO : warn user of rule violation
+
+
 class RuleChecker(Checker):
     def __init__(self, browser):
         self.regex = re.compile(
-                "^(RULE |(?P<radio>Posting Rule ))?(?P<our_rule>[0-9]+)"
+                "^(RULE |(?P<radio>Posting Rule ))?(?P<rule>[0-9]+)"
                 "(?(radio) - [\w ]*)$",
                 re.I
                 )
@@ -243,18 +255,11 @@ class RuleChecker(Checker):
         self.footer = True
         Checker.__init__(self, browser)
 
-    def check(self, report):
-        m = self.regex.match(report)
-
-        if m:
-            rule = int(m.group('our_rule'))
-            if rule > len(self.browser.reasons):
-                return None
-
-            return {"rule": rule}
-
     def action(self, post, mod, **kwargs):
-        rule = kwargs['rule']
+        rule = int(kwargs['rule'])
+        if rule > len(self.browser.reasons):
+            return
+
         Checker.action(self, post, mod, "Rule " + str(rule),
                        self.browser.reasons[rule - 1])
 

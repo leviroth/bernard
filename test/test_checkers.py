@@ -57,7 +57,8 @@ class RuleCheckerTest(BJOTest):
         self.r.login(self.un, password=self.un_pswd, disable_warning=True)
         post_id = self.r.submit(self.sr, 'RuleCheckerTest.test_action', text='', send_replies=False).id
         post = self.browser.r.get_submission(submission_id=post_id)
-        self.checker.action(post, 'TGB', **{'rule': 1})
+        our_dict = self.checker.check('rule 1')
+        self.checker.action(post, 'TGB', **our_dict)
 
         post.refresh()
         self.assertTrue(post.locked)
