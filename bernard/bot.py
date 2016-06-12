@@ -6,6 +6,7 @@ import time
 import sqlite3
 from xml.sax.saxutils import unescape
 
+
 class Checker:
     def __init__(self, browser):
         self.browser = browser
@@ -34,9 +35,10 @@ class Checker:
         log_text = mod + " removed " + post.fullname + " by " + \
             str(post.author) + " [" + rule + "]"
         print log_text
-        self.browser.cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)',
-                    (mod, "removed " + post.fullname + " by " +
-                     str(post.author), rule))
+        self.browser.cur.execute('INSERT INTO actions (mod, action, reason) '
+                                 'VALUES(?,?,?)',
+                                 (mod, "removed " + post.fullname + " by " +
+                                  str(post.author), rule))
         self.browser.sql.commit()
 
         # Build note text
@@ -67,8 +69,8 @@ class Checker:
             return
         else:
             self.browser.cur.execute('INSERT INTO notifications '
-                    '(target, comment) VALUES(?,?)',
-                    (post.fullname, result.fullname))
+                                     '(target, comment) VALUES(?,?)',
+                                     (post.fullname, result.fullname))
             self.browser.sql.commit()
 
         try:
@@ -99,9 +101,10 @@ class ShadowBanner(Checker):
         else:
             self.to_ban.append((str(post.author), post.permalink))
 
-            self.browser.cur.execute('INSERT INTO actions (mod, action, reason) '
-                        'VALUES(?,?,?)', (mod, 'banned ' + str(post.author),
-                                          post.permalink))
+            self.browser.cur.execute('INSERT INTO actions '
+                                     '(mod, action, reason) VALUES(?,?,?)',
+                                     (mod, 'banned ' + str(post.author),
+                                      post.permalink))
             self.browser.sql.commit()
 
     def after(self):
@@ -173,7 +176,6 @@ class DevelopmentChecker(Checker):
         self.footer = True
         Checker.__init__(self, browser)
 
-# TODO: Make reasons a proper instance attribute, maybe
 
 class WarningChecker(Checker):
     def __init__(self, browser):
@@ -199,12 +201,14 @@ class WarningChecker(Checker):
         rule = self.rule
         note_text = self.note_text
 
-        log_text = mod + " added comment rule warning on " + post.fullname + " by " + \
-            str(post.author)
+        log_text = mod + " added comment rule warning on " + post.fullname + \
+            " by " + str(post.author)
         print log_text
-        self.browser.cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)',
-                    (mod, "added comment warning on " + post.fullname + " by " +
-                     str(post.author), rule))
+        self.browser.cur.execute('INSERT INTO actions (mod, action, reason) '
+                                 'VALUES(?,?,?)',
+                                 (mod, "added comment warning on " +
+                                  post.fullname + " by " + str(post.author),
+                                  rule))
         self.browser.sql.commit()
 
         # Build note text
@@ -222,6 +226,7 @@ class WarningChecker(Checker):
             print "* Failed to distinguish comment on " + post.fullname
             print str(e)
 
+
 class NukeChecker(Checker):
     def __init__(self, browser):
         self.regex = re.compile('^(n|nuke)( (?P<rule>[0-9]+))?$', re.I)
@@ -230,7 +235,8 @@ class NukeChecker(Checker):
 
     def action(self, post, mod, **kwargs):
         try:
-            tree = praw.objects.Submission.from_url(self.browser.r, post.permalink)
+            tree = praw.objects.Submission.from_url(self.browser.r,
+                                                    post.permalink)
             tree.replace_more_comments()
         except Exception as e:
             print "Failed to retrieve comment tree on" + post.fullname
@@ -252,16 +258,18 @@ class NukeChecker(Checker):
         else:
             rule = None
 
-        self.browser.cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)',
-                    (mod, "nuked " + post.fullname + " by " +
-                     str(post.author), str(rule)))
+        self.browser.cur.execute('INSERT INTO actions (mod, action, reason) '
+                                 'VALUES(?,?,?)',
+                                 (mod, "nuked " + post.fullname + " by " +
+                                  str(post.author), str(rule)))
         self.browser.sql.commit()
 
         if rule is not None:
             rule_text = self.browser.comment_rules[rule - 1]
             reply_text = (
                     "Please bear in mind our commenting rules:\n\n>**" +
-                    rule_text['short_name'] + "**\n\n>" + rule_text['description']
+                    rule_text['short_name'] + "**\n\n>" +
+                    rule_text['description']
                     )
             try:
                 result = post.reply(reply_text)
@@ -299,13 +307,16 @@ class RuleChecker(Checker):
 
 
 class SubredditBrowser:
-    def __init__(self, sub_name, username, user_agent, checkers, sql, password=None):
+    def __init__(self, sub_name, username, user_agent, checkers, sql,
+                 password=None):
         self.sql = sql
         self.cur = self.sql.cursor()
-        self.cur.execute('CREATE TABLE IF NOT EXISTS actions(mod TEXT, action TEXT, reason '
-                    'TEXT, time DATETIME DEFAULT CURRENT_TIMESTAMP)')
-        self.cur.execute('CREATE TABLE IF NOT EXISTS notifications'
-                    '(target TEXT, comment TEXT, reinstated INT DEFAULT 0)')
+        self.cur.execute('CREATE TABLE IF NOT EXISTS '
+                         'actions(mod TEXT, action TEXT, reason '
+                         'TEXT, time DATETIME DEFAULT CURRENT_TIMESTAMP)')
+        self.cur.execute('CREATE TABLE IF NOT EXISTS '
+                         'notifications (target TEXT, comment TEXT, '
+                         'reinstated INT DEFAULT 0)')
         print 'Loaded SQL database'
         self.sql.commit()
         self.sub_name = sub_name
@@ -360,8 +371,9 @@ class SubredditBrowser:
         log = self.sub.get_mod_log(action='approvelink')
         try:
             for action in log:
-                self.cur.execute('SELECT comment FROM notifications WHERE target = ? AND reinstated = ? LIMIT 1',
-                        (action.target_fullname, False))
+                self.cur.execute('SELECT comment FROM notifications '
+                                 'WHERE target = ? AND reinstated = ? LIMIT 1',
+                                 (action.target_fullname, False))
                 row = self.cur.fetchone()
                 if row:
                     try:
@@ -372,8 +384,9 @@ class SubredditBrowser:
                     except Exception as e:
                         print "Couldn't reinstate post: " + str(e)
                     else:
-                        self.cur.execute('UPDATE notifications SET reinstated = ? WHERE target = ?',
-                                (True, action.target_fullname))
+                        self.cur.execute('UPDATE notifications '
+                                         'SET reinstated = ? WHERE target = ?',
+                                         (True, action.target_fullname))
                         self.sql.commit()
         except Exception as e:
             print "Couldn't get mod log: " + str(e)
