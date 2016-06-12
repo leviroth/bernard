@@ -224,23 +224,57 @@ class WarningChecker(Checker):
 
 class NukeChecker(Checker):
     def __init__(self, browser):
-        self.regex = re.compile('^(n|nuke)( (?<rule>[0-9]+))$', re.I)
+        self.regex = re.compile('^(n|nuke)( (?P<rule>[0-9]+))?$', re.I)
         self.types = set([praw.objects.Comment])
         Checker.__init__(self, browser)
 
     def action(self, post, mod, **kwargs):
-        tree = praw.objects.Submission.from_url(self.browser.r, post.permalink)
-        tree.replace_more_comments()
+        try:
+            tree = praw.objects.Submission.from_url(self.browser.r, post.permalink)
+            tree.replace_more_comments()
+        except Exception as e:
+            print "Failed to retrieve comment tree on" + post.fullname
+            print e
+            return
+
         comments = praw.helpers.flatten_tree(tree.comments)
         for comment in comments:
-            comment.remove()
+            try:
+                comment.remove()
+            except Exception as e:
+                print "- Failed to remove comment " + post.fullname
+                print e
 
         if 'rule' in kwargs:
             rule = int(kwargs['rule'])
-            if rule > len(self.browser.comment_rules):
+            if rule > len(self.browser.comment_rules[rule - 1]):
+                rule = None
+        else:
+            rule = None
+
+        self.browser.cur.execute('INSERT INTO actions (mod, action, reason) VALUES(?,?,?)',
+                    (mod, "nuked " + post.fullname + " by " +
+                     str(post.author), str(rule)))
+        self.browser.sql.commit()
+
+        if rule is not None:
+            rule_text = self.browser.comment_rules[rule - 1]
+            reply_text = (
+                    "Please bear in mind our commenting rules:\n\n>**" +
+                    rule_text['short_name'] + "**\n\n>" + rule_text['description']
+                    )
+            try:
+                result = post.reply(reply_text)
+            except Exception as e:
+                print "- Failed to add comment warning on " + post.fullname
+                print str(e)
                 return
 
-# TODO : warn user of rule violation
+            try:
+                result.distinguish()
+            except Exception as e:
+                print "* Failed to distinguish comment on " + post.fullname
+                print str(e)
 
 
 class RuleChecker(Checker):
@@ -295,6 +329,9 @@ class SubredditBrowser:
         self.reasons = [urllib2.unquote(x['text'])
                         for x in j['removalReasons']['reasons']]
         print "Successfully loaded removal reasons"
+
+        self.comment_rules = [x for x in self.sub.get_rules()['rules']
+                              if x['kind'] == 'comment']
 
         self.checkers = [checker(self) for checker in checkers]
 
