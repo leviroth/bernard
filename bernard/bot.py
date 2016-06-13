@@ -415,7 +415,8 @@ if __name__ == '__main__':
                                     QuestionChecker,
                                     DevelopmentChecker,
                                     RuleChecker,
-                                    WarningChecker],
+                                    WarningChecker,
+                                    NukeChecker],
                                    sql
                                    )
 
