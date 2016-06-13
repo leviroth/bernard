@@ -198,6 +198,11 @@ class WarningChecker(Checker):
         Checker.__init__(self, browser)
 
     def action(self, post, mod):
+        self.browser.cur.execute('SELECT * FROM warnings WHERE target = ?',
+                         (post.fullname,))
+        if self.browser.cur.fetchall() != []:
+            return
+
         rule = self.rule
         note_text = self.note_text
 
@@ -220,7 +225,12 @@ class WarningChecker(Checker):
             print str(e)
             return
 
+        self.browser.cur.execute('INSERT INTO warnings (target) VALUES (?)',
+                                 (post.fullname,))
+        self.browser.sql.commit()
+
         try:
+            post.approve()
             result.distinguish(sticky=True)
         except Exception as e:
             print "* Failed to distinguish comment on " + post.fullname
@@ -317,6 +327,7 @@ class SubredditBrowser:
         self.cur.execute('CREATE TABLE IF NOT EXISTS '
                          'notifications (target TEXT, comment TEXT, '
                          'reinstated INT DEFAULT 0)')
+        self.cur.execute('CREATE TABLE IF NOT EXISTS warnings (target TEXT)')
         print 'Loaded SQL database'
         self.sql.commit()
         self.sub_name = sub_name

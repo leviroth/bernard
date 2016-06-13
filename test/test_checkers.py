@@ -8,6 +8,7 @@ import re
 import time
 import sqlite3
 from xml.sax.saxutils import unescape
+import mock
 
 class CheckerTest(BJOTest):
     class OurChecker(bot.Checker):
@@ -92,9 +93,14 @@ class WarningCheckerTest(BJOTest):
         post = self.browser.r.get_submission(submission_id=post_id)
         self.checker.action(post, 'TGB')
 
+        time.sleep(10)
         post.refresh()
         self.assertTrue(post.comments[0].stickied)
         self.assertFalse(post.locked)
+
+        with mock.patch('praw.objects.Submission.add_comment') as mock_add_reply:
+            self.checker.action(post, 'TGB')
+            self.assertFalse(mock_add_reply.called)
 
 class ShadowBannerTest(BJOTest):
     def test_check(self):
