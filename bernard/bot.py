@@ -199,7 +199,7 @@ class WarningChecker(Checker):
 
     def action(self, post, mod):
         self.browser.cur.execute('SELECT * FROM warnings WHERE target = ?',
-                         (post.fullname,))
+                                 (post.fullname,))
         if self.browser.cur.fetchall() != []:
             return
 
