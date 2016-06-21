@@ -1,14 +1,11 @@
-import unittest
 from bernard import bot
 from .helper import BJOTest
 import praw
-import json
-import urllib2
 import re
 import time
-import sqlite3
 from xml.sax.saxutils import unescape
 import mock
+
 
 class CheckerTest(BJOTest):
     class OurChecker(bot.Checker):
@@ -30,7 +27,8 @@ class CheckerTest(BJOTest):
     def test_action(self):
         self.checker = self.OurChecker(self.browser)
         self.r.login(self.un, password=self.un_pswd, disable_warning=True)
-        post_id = self.r.submit(self.sr, 'CheckerTest.test_action', text='', send_replies=False).id
+        post_id = self.r.submit(self.sr, 'CheckerTest.test_action', text='',
+                                send_replies=False).id
         post = self.browser.r.get_submission(submission_id=post_id)
         self.checker.action(post, 'TGB')
 
@@ -45,6 +43,7 @@ class CheckerTest(BJOTest):
         self.assertTrue(comment.stickied)
         self.assertEqual(comment.distinguished, u'moderator')
 
+
 class RuleCheckerTest(BJOTest):
     def test_check(self):
         self.checker = bot.RuleChecker(self.browser)
@@ -56,13 +55,15 @@ class RuleCheckerTest(BJOTest):
     def test_action(self):
         self.checker = bot.RuleChecker(self.browser)
         self.r.login(self.un, password=self.un_pswd, disable_warning=True)
-        post_id = self.r.submit(self.sr, 'RuleCheckerTest.test_action', text='', send_replies=False).id
+        post_id = self.r.submit(self.sr, 'RuleCheckerTest.test_action',
+                                text='', send_replies=False).id
         post = self.browser.r.get_submission(submission_id=post_id)
         our_dict = self.checker.check('rule 1')
         self.checker.action(post, 'TGB', **our_dict)
 
         post.refresh()
         self.assertTrue(post.locked)
+
 
 class QuestionCheckerTest(BJOTest):
     def test_check(self):
@@ -71,6 +72,7 @@ class QuestionCheckerTest(BJOTest):
         self.assertIsNotNone(self.checker.check('question'))
         self.assertIsNone(self.checker.check('1'))
 
+
 class DevelopmentCheckerTest(BJOTest):
     def test_check(self):
         self.checker = bot.DevelopmentChecker(self.browser)
@@ -78,6 +80,7 @@ class DevelopmentCheckerTest(BJOTest):
         self.assertIsNotNone(self.checker.check('dev'))
         self.assertIsNotNone(self.checker.check('develop'))
         self.assertIsNone(self.checker.check('1'))
+
 
 class WarningCheckerTest(BJOTest):
     def test_check(self):
@@ -89,7 +92,8 @@ class WarningCheckerTest(BJOTest):
     def test_action(self):
         self.checker = bot.WarningChecker(self.browser)
         self.r.login(self.un, password=self.un_pswd, disable_warning=True)
-        post_id = self.r.submit(self.sr, 'WarningCheckerTest.test_action', text='', send_replies=False).id
+        post_id = self.r.submit(self.sr, 'WarningCheckerTest.test_action',
+                                text='', send_replies=False).id
         post = self.browser.r.get_submission(submission_id=post_id)
         self.checker.action(post, 'TGB')
 
@@ -98,9 +102,11 @@ class WarningCheckerTest(BJOTest):
         self.assertTrue(post.comments[0].stickied)
         self.assertFalse(post.locked)
 
-        with mock.patch('praw.objects.Submission.add_comment') as mock_add_reply:
+        with mock.patch('praw.objects.Submission.add_comment'
+                        ) as mock_add_reply:
             self.checker.action(post, 'TGB')
             self.assertFalse(mock_add_reply.called)
+
 
 class ShadowBannerTest(BJOTest):
     def test_check(self):
@@ -112,7 +118,8 @@ class ShadowBannerTest(BJOTest):
     def test_action(self):
         self.checker = bot.ShadowBanner(self.browser)
         self.r.login(self.un, password=self.un_pswd, disable_warning=True)
-        post_id = self.r.submit(self.sr, 'ShadowBannerTest.test_action', text='', send_replies=False).id
+        post_id = self.r.submit(self.sr, 'ShadowBannerTest.test_action',
+                                text='', send_replies=False).id
         post = self.browser.r.get_submission(submission_id=post_id)
         self.checker.action(post, 'TGB')
 
@@ -128,14 +135,16 @@ class ShadowBannerTest(BJOTest):
         self.checker.after()
 
         self.r.login(self.un, password=self.un_pswd, disable_warning=True)
-        post_id = self.r.submit(self.sr, 'ShadowBannerTest.test_action', text='', send_replies=False).id
+        post_id = self.r.submit(self.sr, 'ShadowBannerTest.test_action',
+                                text='', send_replies=False).id
         post = self.browser.r.get_submission(submission_id=post_id)
 
         post.refresh()
         self.assertIsNotNone(post.banned_by)
 
         self.browser.r.edit_wiki_page(self.browser.sub, 'config/automoderator',
-                wiki_text)
+                                      wiki_text)
+
 
 class NukeCheckerTest(BJOTest):
     def test_check(self):
@@ -146,7 +155,9 @@ class NukeCheckerTest(BJOTest):
 
     def test_action(self):
         self.checker = bot.NukeChecker(self.browser)
-        post = self.browser.r.get_submission(url='https://www.reddit.com/r/ThirdRealm/comments/4nj6vw/nuketesttest_action/d44bqfg')
+        post = self.browser.r.get_submission(url='https://www.reddit.com'
+                                             '/r/ThirdRealm/comments/4nj6vw'
+                                             '/nuketesttest_action/d44bqfg')
         self.checker.action(post.comments[0], 'TGB')
 
         post.refresh()

@@ -5,6 +5,7 @@ import sqlite3
 
 USER_AGENT = 'BJO_test_suite'
 
+
 class BJOTest(unittest.TestCase):
     def configure(self):
         self.r = Reddit('BJO_test_suite_friend', disable_update_check=True)
@@ -18,10 +19,11 @@ class BJOTest(unittest.TestCase):
     def setUp(self):
         self.configure()
         sql = sqlite3.connect(':memory:')
-        self.browser = bot.SubredditBrowser(self.sr, self.mod_un, self.user_agent,
-                [bot.ShadowBanner,
-                 bot.QuestionChecker,
-                 bot.DevelopmentChecker,
-                 bot.RuleChecker,
-                 bot.WarningChecker],
-                sql, password='123456')
+        self.browser = bot.SubredditBrowser(self.sr, self.mod_un,
+                                            self.user_agent,
+                                            [bot.ShadowBanner,
+                                             bot.QuestionChecker,
+                                             bot.DevelopmentChecker,
+                                             bot.RuleChecker,
+                                             bot.WarningChecker],
+                                            sql, password='123456')
