@@ -150,6 +150,7 @@ class NukeCheckerTest(BJOTest):
     def test_check(self):
         self.checker = bot.NukeChecker(self.browser)
         self.assertIsNotNone(self.checker.check('n'))
+        self.assertIsNotNone(self.checker.check('n 1'))
         self.assertIsNotNone(self.checker.check('nuke'))
         self.assertIsNone(self.checker.check('q'))
 
