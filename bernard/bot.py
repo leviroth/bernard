@@ -360,12 +360,11 @@ class SubredditBrowser:
     def scan_post(self, post):
         for mod_report in post.mod_reports:
             for checker in self.checkers:
-                if post.__class__ not in checker.types:
-                    return
-                result = checker.check(mod_report[0])
-                if type(result) == dict:
-                    checker.action(post, mod_report[1], **result)
-                    return
+                if post.__class__ in checker.types:
+                    result = checker.check(mod_report[0])
+                    if type(result) == dict:
+                        checker.action(post, mod_report[1], **result)
+                        return
 
     def scan_reports(self):
         try:
