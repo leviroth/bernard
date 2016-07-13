@@ -166,3 +166,18 @@ class NukeCheckerTest(BJOTest):
         for comment in comments:
             self.assertTrue(comment.banned_by)
             comment.approve()
+
+
+class ShitpostCheckerTest(BJOTest):
+    def test_action(self):
+        self.checker = bot.ShitpostChecker(self.browser)
+        post = self.browser.r.get_submission(url='https://www.reddit.com'
+                                             '/r/ThirdRealm/comments/4nx60o'
+                                             '/warningcheckertesttest_action/')
+        self.checker.action(post, 'TGB')
+
+        post.refresh()
+        self.assertTrue(post.author in self.browser.sub.get_banned())
+        self.assertIsNotNone(post.banned_by)
+        post.approve()
+        self.browser.sub.remove_ban(post.author)

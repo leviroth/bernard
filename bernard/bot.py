@@ -177,6 +177,28 @@ class DevelopmentChecker(Checker):
         Checker.__init__(self, browser)
 
 
+class ShitpostChecker(Checker):
+    def __init__(self, browser):
+        self.regex = re.compile("^(sp|shitpost)$", re.I)
+        self.rule = "Shitpost"
+        self.types = set([praw.objects.Submission, praw.objects.Comment])
+        Checker.__init__(self, browser)
+
+    def action(self, post, mod):
+        try:
+            self.browser.sub.add_ban(
+                post.author, duration=3, ban_message="Don't shitpost on "
+                "/r/philosophy.", ban_reason="Shitposting - banned by " + mod
+            )
+        except Exception:
+            return
+
+        try:
+            post.remove()
+        except Exception:
+            return
+
+
 class WarningChecker(Checker):
     def __init__(self, browser):
         self.regex = re.compile("^(w|warn)$", re.I)
@@ -194,7 +216,7 @@ class WarningChecker(Checker):
                 "This sub is not in the business of one-liners, tangential "
                 "anecdotes, or dank memes. Expect comment threads that break "
                 "our rules to be removed."
-                )
+        )
         Checker.__init__(self, browser)
 
     def action(self, post, mod):
@@ -277,10 +299,10 @@ class NukeChecker(Checker):
         if rule is not None:
             rule_text = self.browser.comment_rules[rule - 1]
             reply_text = (
-                    "Please bear in mind our commenting rules:\n\n>**" +
-                    rule_text['short_name'] + "**\n\n>" +
-                    rule_text['description']
-                    )
+                "Please bear in mind our commenting rules:\n\n>**" +
+                rule_text['short_name'] + "**\n\n>" +
+                rule_text['description']
+            )
             try:
                 result = post.reply(reply_text)
             except Exception as e:
@@ -298,10 +320,10 @@ class NukeChecker(Checker):
 class RuleChecker(Checker):
     def __init__(self, browser):
         self.regex = re.compile(
-                "^(RULE |(?P<radio>Posting Rule ))?(?P<rule>[0-9]+)"
-                "(?(radio) - [\w ]*)$",
-                re.I
-                )
+            "^(RULE |(?P<radio>Posting Rule ))?(?P<rule>[0-9]+)"
+            "(?(radio) - [\w ]*)$",
+            re.I
+        )
         self.types = set([praw.objects.Submission])
         self.header = True
         self.footer = True
