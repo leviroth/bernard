@@ -190,12 +190,14 @@ class ShitpostChecker(Checker):
                 post.author, duration=3, ban_message="Don't shitpost on "
                 "/r/philosophy.", ban_reason="Shitposting - banned by " + mod
             )
-        except Exception:
+        except Exception as e:
+            print "Banning author of " + post.name + " failed: " + str(e)
             return
 
         try:
             post.remove()
-        except Exception:
+        except Exception as e:
+            print "Removing " + post.name + " failed: " + str(e)
             return
 
 
@@ -433,6 +435,7 @@ if __name__ == '__main__':
 
     our_browser = SubredditBrowser(sub_name, username, user_agent,
                                    [ShadowBanner,
+                                    ShitpostChecker,
                                     QuestionChecker,
                                     DevelopmentChecker,
                                     RuleChecker,
