@@ -431,7 +431,7 @@ if __name__ == '__main__':
     username = "BernardJOrtcutt"
     user_agent = ("python:/r/Philosophy reporter:v1.0 "
                   "(by /u/TheGrammarBolshevik)")
-    sql = sqlite3.connect('server/sql.db')
+    sql = sqlite3.connect('./sql.db')
 
     our_browser = SubredditBrowser(sub_name, username, user_agent,
                                    [ShadowBanner,
