@@ -1,3 +1,4 @@
+import logging
 import praw
 import json
 import urllib2
@@ -7,88 +8,72 @@ import sqlite3
 from xml.sax.saxutils import unescape
 
 
-class Checker:
-    def __init__(self, browser):
-        self.browser = browser
+class Actor:
+    def __init__(self, act_name, subreddit, db):
+        self.act_name = act_name
+        self.sub = subreddit
+        self.db = db
 
-    def check(self, report):
-        result = self.regex.match(report)
-
-        if result is not None:
-            return result.groupdict()
-        else:
-            return None
-
-    def action(self, post, mod, rule=None, note_text=None):
-        if rule is None:
-            rule = self.rule
-        if note_text is None:
-            note_text = self.note_text
-
-        try:
-            post.remove()
-        except Exception as e:
-            print "- Failed to remove " + post.fullname
-            print str(e)
-            return
-
-        log_text = mod + " removed " + post.fullname + " by " + \
-            str(post.author) + " [" + rule + "]"
-        print log_text
-        self.browser.cur.execute('INSERT INTO actions (mod, action, reason) '
-                                 'VALUES(?,?,?)',
-                                 (mod, "removed " + post.fullname + " by " +
-                                  str(post.author), rule))
-        self.browser.sql.commit()
-
-        # Build note text
-
-        content_list = []
-        if self.header:
-            content_list.append(self.browser.header)
-        content_list.append(note_text)
-        if self.footer:
-            content_list.append(
-                self.browser.footer.replace(
-                    "{url}", urllib2.quote(post.permalink.encode('utf8'))
-                    )
-                )
-        note_text = "\n\n".join(content_list)
-
-        try:
-            post.lock()
-        except Exception as e:
-            print "- Failed to lock " + post.fullname
-            print str(e)
-
-        try:
-            result = post.add_comment(note_text)
-        except Exception as e:
-            print "- Failed to add comment on " + post.fullname
-            print str(e)
-            return
-        else:
-            self.browser.cur.execute('INSERT INTO notifications '
-                                     '(target, comment) VALUES(?,?)',
-                                     (post.fullname, result.fullname))
-            self.browser.sql.commit()
-
-        try:
-            result.distinguish(sticky=True)
-        except Exception as e:
-            print "* Failed to distinguish comment on " + post.fullname
-            print str(e)
+    def action(self, post, mod):
+        pass
 
     def after(self):
         pass
 
 
-class ShadowBanner(Checker):
-    def __init__(self, browser):
+class Remover(Actor):
+    def __init__(self, *args, **kwargs):
+        super().__init__("removed", *args, **kwargs)
+
+    # BROWSER or similar is now responsible for building appropriate
+    # note text
+    def action(self, post, mod):
+        try:
+            post.remove()
+        except Exception as e:
+            logging.error("Failed to remove {thing}: {err}".format(
+                thing=post.name, err=str(e)))
+            return
+        else:
+            pass
+            # TODO: Database
+
+        try:
+            post.lock()
+        except Exception as e:
+            logging.error("Failed to lock {thing}: {err}".format(
+                thing=post.name, err=str(e)))
+
+
+class Notifier(Actor):
+    def __init__(self, note_text, *args, **kwargs):
+        # TODO: Decide what we do for notifications that don't do anything else
+        super().__init__("notified", *args, **kwargs)
+        self.note_text = note_text
+
+    def action(self, post):
+        try:
+            result = post.add_comment(self.note_text)
+        except Exception as e:
+            logging.error("Failed to add comment on {thing}: {err}".format(
+                thing=post.name, err=str(e)))
+            return
+        else:
+            pass
+            # TODO: Database - need this so we can reinstate
+
+        try:
+            result.distinguish(sticky=True)
+        except Exception as e:
+            logging.error(
+                "Failed to distinguish comment on {thing}: {err}".format(
+                    thing=post.name, err=str(e)))
+
+
+class ShadowBanner(Actor):
+    def __init__(self, *args, **kwargs):
+        super().__init__("shadowbanned", *args, **kwargs)
         self.to_ban = []
-        self.regex = re.compile("^(shadowban|sb)$", re.I)
-        self.types = set([praw.objects.Submission, praw.objects.Comment])
-        Checker.__init__(self, browser)
 
     def action(self, post, mod):
         print mod + ' is shadowbanning ' + str(post.author)
@@ -141,48 +126,9 @@ class ShadowBanner(Checker):
             self.to_ban = []
 
 
-class QuestionChecker(Checker):
-    def __init__(self, browser):
-        self.regex = re.compile("^(question|q)$", re.I)
-        self.rule = "Question"
-        self.note_text = (
-                "Questions are best directed to /r/askphilosophy, "
-                "which specializes in answers to philosophical questions!"
-                )
-        self.types = set([praw.objects.Submission])
-        self.header = False
-        self.footer = False
-        Checker.__init__(self, browser)
-
-
-class DevelopmentChecker(Checker):
-    def __init__(self, browser):
-        self.regex = re.compile("^(d|dev|develop)$", re.I)
-        self.rule = "Underdeveloped"
-        self.note_text = (
-                "Posts on this subreddit need to not only have a "
-                "philosophical subject matter, but must also present this "
-                "subject matter in a developed manner. At a minimum, this "
-                "includes: stating the problem being addressed; stating the "
-                "thesis; stating how the thesis contributes to the problem; "
-                "outlining some alternative answers to the same problem; "
-                "something about why the stated thesis is preferable to the "
-                "alternatives; anticipating some objections to the stated "
-                "thesis and giving responses to them. These are just the "
-                "minimum requirements."
-                )
-        self.types = set([praw.objects.Submission])
-        self.header = False
-        self.footer = True
-        Checker.__init__(self, browser)
-
-
-class ShitpostChecker(Checker):
-    def __init__(self, browser):
-        self.regex = re.compile("^(sp|shitpost)$", re.I)
-        self.rule = "Shitpost"
-        self.types = set([praw.objects.Submission, praw.objects.Comment])
-        Checker.__init__(self, browser)
+class Banner(Actor):
+    def __init__(self, *args, **kwargs):
+        super().__init__("banned", *args, **kwargs)
 
     def action(self, post, mod):
         try:
@@ -200,72 +146,71 @@ class ShitpostChecker(Checker):
             print "Removing " + post.name + " failed: " + str(e)
             return
 
+# TODO: Factor out the part of the following that can be useful for notifier
 
-class WarningChecker(Checker):
-    def __init__(self, browser):
-        self.regex = re.compile("^(w|warn)$", re.I)
-        self.rule = "Comment Rule 1"
-        self.types = set([praw.objects.Submission])
-        self.note_text = (
-                "I'd like to take a moment to remind everyone of our "
-                "first commenting rule:\n\n>*Read the post before you "
-                "reply.*\n\n>Read the posted content, understand and identify "
-                "the philosophical arguments given, and respond to these "
-                "substantively. If you have unrelated thoughts or don't wish "
-                "to read the content, please post your own thread or simply "
-                "refrain from commenting. Comments which are clearly not in "
-                "direct response to the posted content may be removed.\n\n"
-                "This sub is not in the business of one-liners, tangential "
-                "anecdotes, or dank memes. Expect comment threads that break "
-                "our rules to be removed."
-        )
-        Checker.__init__(self, browser)
+# class WarningChecker(Checker):
+#     def __init__(self, browser):
+#         self.regex = re.compile("^(w|warn)$", re.I)
+#         self.rule = "Comment Rule 1"
+#         self.types = set([praw.objects.Submission])
+#         self.note_text = (
+#                 "I'd like to take a moment to remind everyone of our "
+#                 "first commenting rule:\n\n>*Read the post before you "
+#                 "reply.*\n\n>Read the posted content, understand and identify "
+#                 "the philosophical arguments given, and respond to these "
+#                 "substantively. If you have unrelated thoughts or don't wish "
+#                 "to read the content, please post your own thread or simply "
+#                 "refrain from commenting. Comments which are clearly not in "
+#                 "direct response to the posted content may be removed.\n\n"
+#                 "This sub is not in the business of one-liners, tangential "
+#                 "anecdotes, or dank memes. Expect comment threads that break "
+#                 "our rules to be removed."
+#         )
+#         Checker.__init__(self, browser)
 
-    def action(self, post, mod):
-        self.browser.cur.execute('SELECT * FROM warnings WHERE target = ?',
-                                 (post.fullname,))
-        if self.browser.cur.fetchall() != []:
-            return
+#     def action(self, post, mod):
+#         self.browser.cur.execute('SELECT * FROM warnings WHERE target = ?',
+#                                  (post.fullname,))
+#         if self.browser.cur.fetchall() != []:
+#             return
 
-        rule = self.rule
-        note_text = self.note_text
+#         rule = self.rule
+#         note_text = self.note_text
 
-        log_text = mod + " added comment rule warning on " + post.fullname + \
-            " by " + str(post.author)
-        print log_text
-        self.browser.cur.execute('INSERT INTO actions (mod, action, reason) '
-                                 'VALUES(?,?,?)',
-                                 (mod, "added comment warning on " +
-                                  post.fullname + " by " + str(post.author),
-                                  rule))
-        self.browser.sql.commit()
+#         log_text = mod + " added comment rule warning on " + post.fullname + \
+#             " by " + str(post.author)
+#         print log_text
+#         self.browser.cur.execute('INSERT INTO actions (mod, action, reason) '
+#                                  'VALUES(?,?,?)',
+#                                  (mod, "added comment warning on " +
+#                                   post.fullname + " by " + str(post.author),
+#                                   rule))
+#         self.browser.sql.commit()
 
         # Build note text
 
-        try:
-            result = post.add_comment(note_text)
-        except Exception as e:
-            print "- Failed to add comment on " + post.fullname
-            print str(e)
-            return
+#         try:
+#             result = post.add_comment(note_text)
+#         except Exception as e:
+#             print "- Failed to add comment on " + post.fullname
+#             print str(e)
+#             return
 
-        self.browser.cur.execute('INSERT INTO warnings (target) VALUES (?)',
-                                 (post.fullname,))
-        self.browser.sql.commit()
+#         self.browser.cur.execute('INSERT INTO warnings (target) VALUES (?)',
+#                                  (post.fullname,))
+#         self.browser.sql.commit()
 
-        try:
-            post.approve()
-            result.distinguish(sticky=True)
-        except Exception as e:
-            print "* Failed to distinguish comment on " + post.fullname
-            print str(e)
+#         try:
+#             post.approve()
+#             result.distinguish(sticky=True)
+#         except Exception as e:
+#             print "* Failed to distinguish comment on " + post.fullname
+#             print str(e)
 
 
-class NukeChecker(Checker):
-    def __init__(self, browser):
-        self.regex = re.compile('^(n|nuke)( (?P<rule>[0-9]+))?$', re.I)
-        self.types = set([praw.objects.Comment])
-        Checker.__init__(self, browser)
+class Nuker(Actor):
+    def __init__(self, *args, **kwargs):
+        super().__init__("nuked", *args, **kwargs)
 
     def action(self, post, mod, **kwargs):
         try:
@@ -285,41 +230,10 @@ class NukeChecker(Checker):
                 print "- Failed to remove comment " + post.fullname
                 print e
 
-        if 'rule' in kwargs:
-            rule = int(kwargs['rule'])
-            if rule > len(self.browser.comment_rules[rule - 1]):
-                rule = None
-        else:
-            rule = None
 
-        self.browser.cur.execute('INSERT INTO actions (mod, action, reason) '
-                                 'VALUES(?,?,?)',
-                                 (mod, "nuked " + post.fullname + " by " +
-                                  str(post.author), str(rule)))
-        self.browser.sql.commit()
-
-        if rule is not None:
-            rule_text = self.browser.comment_rules[rule - 1]
-            reply_text = (
-                "Please bear in mind our commenting rules:\n\n>**" +
-                rule_text['short_name'] + "**\n\n>" +
-                rule_text['description']
-            )
-            try:
-                result = post.reply(reply_text)
-            except Exception as e:
-                print "- Failed to add comment warning on " + post.fullname
-                print str(e)
-                return
-
-            try:
-                result.distinguish()
-            except Exception as e:
-                print "* Failed to distinguish comment on " + post.fullname
-                print str(e)
-
-
-class RuleChecker(Checker):
+# Idea: have some sort of factory thing that reads the rules and generates
+# removers *and* their controllers accordingly. Don't need a separate class.
+class RuleChecker(Actor):
     def __init__(self, browser):
         self.regex = re.compile(
             "^(RULE |(?P<radio>Posting Rule ))?(?P<rule>[0-9]+)"
@@ -329,15 +243,15 @@ class RuleChecker(Checker):
         self.types = set([praw.objects.Submission])
         self.header = True
         self.footer = True
-        Checker.__init__(self, browser)
 
     def action(self, post, mod, **kwargs):
         rule = int(kwargs['rule'])
         if rule > len(self.browser.reasons):
             return
 
-        Checker.action(self, post, mod, "Rule " + str(rule),
-                       self.browser.reasons[rule - 1])
+        # My god this is ugly
+        # Checker.action(self, post, mod, "Rule " + str(rule),
+        #                self.browser.reasons[rule - 1])
 
 
 class SubredditBrowser:

@@ -1,0 +1,15 @@
+to load data into json object:
+data = json.loads(zlib.decompress(base64.b64decode(j['blob'])).decode())
+
+(Do we need to figure out how to put mods in the list?)
+
+to get link:
+'l,' + x.link_id + ',' + x.id
+
+(different with links obviously)
+
+other fields:
+w: probably the same every time
+m: number corresponding to mod. need to update the list where needed maybe (unless we can just manually pre-populate)
+n: might be the same as well. simple enough at any rate
+t: time, need to figure out time zone considerations
