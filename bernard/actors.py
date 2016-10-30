@@ -1,0 +1,260 @@
+import logging
+import praw
+import urllib2
+import time
+import sqlite3
+from xml.sax.saxutils import unescape
+
+
+registry = {}
+
+
+def register(cls):
+    registry[cls.__name__] = cls
+
+
+class AutoRegister(type):
+    def __new__(cls, name, bases, class_dict):
+        cls = super().__new__(cls, name, bases, class_dict)
+        register(cls)
+        return cls
+
+
+class Actor(metaclass=AutoRegister):
+    def __init__(self, act_name, subreddit, db):
+        self.act_name = act_name
+        self.sub = subreddit
+        self.db = db
+        self.cur = self.db.cursor()
+
+    def action(self, post, mod):
+        pass
+
+    def after(self):
+        pass
+
+    def log_action(mod, action, reason):
+        self = None
+        self.cur.execute('INSERT INTO actions (mod, action, reason) '
+                         'VALUES(?,?,?)',
+                         (mod, str(action), reason))
+        self.db.commit()
+
+    def log_notification(self, parent, comment):
+        self = None
+        self.cur.execute('INSERT INTO notifications (parent, comment) '
+                         'VALUES(?,?)', (parent.fullanme, comment.fullname))
+        self.db.commit()
+
+
+class Remover(Actor):
+    def __init__(self, *args, **kwargs):
+        super().__init__("removed", *args, **kwargs)
+
+    def action(self, post, mod):
+        try:
+            post.remove()
+        except Exception as e:
+            logging.error("Failed to remove {thing}: {err}"
+                          .format(thing=post.name, err=str(e)))
+            return False
+
+        try:
+            post.lock()
+        except Exception as e:
+            logging.error("Failed to lock {thing}: {err}"
+                          .format(thing=post.name, err=str(e)))
+
+        return True
+
+
+class Notifier(Actor):
+    def __init__(self, note_text, *args, **kwargs):
+        super().__init__("notified", *args, **kwargs)
+        self.note_text = note_text
+
+    def _add_reply(thing, text):
+        if isinstance(thing, praw.objects.Submission):
+            return thing.add_comment(text)
+        else:
+            return thing.reply(text)
+
+    def action(self, post):
+        try:
+            result = self._add_reply(post, self.note_text)
+        except Exception as e:
+            logging.error("Failed to add comment on {thing}: {err}"
+                          .format(thing=post.name, err=str(e)))
+            return
+        else:
+            self.log_notification(post, result)
+
+        try:
+            result.distinguish(sticky=isinstance(post,
+                                                 praw.objects.Submission))
+        except Exception as e:
+            logging.error("Failed to distinguish comment on {thing}: {err}"
+                          .format(thing=post.name, err=str(e)))
+
+
+class ShadowBanner(Actor):
+    def __init__(self, *args, **kwargs):
+        super().__init__("shadowbanned", *args, **kwargs)
+        self.to_ban = []
+
+    def action(self, post, mod):
+        print(mod + ' is shadowbanning ' + str(post.author))
+
+        try:
+            post.remove()
+        except Exception as e:
+            logging.error("Failed to remove {thing}: {err}"
+                          .format(thing=post.name, err=str(e)))
+        else:
+            self.to_ban.append((str(post.author), post.permalink))
+
+    def after(self):
+        """Ban accumulated list of users"""
+
+        if not self.to_ban:
+            return
+
+        names = ', '.join([a for (a, b) in self.to_ban])
+        reasons = '\n'.join(['#' + ': '.join(a) for a in self.to_ban])
+
+        try:
+            automod_config = self.browser.r.get_wiki_page(
+                    self.sub, 'config/automoderator')
+        except Exception as e:
+            logging.error("Failed to load automod list of bans: {err}"
+                          .format(err=str(e)))
+            return
+
+        new_content = unescape(automod_config.content_md)
+        new_content = new_content.replace('#do_not_remove_a', reasons +
+                                          '\n#do_not_remove_a')
+        new_content = new_content.replace('do_not_remove_b',
+                                          'do_not_remove_b, ' + names)
+
+        try:
+            self.browser.r.edit_wiki_page(self.sub,
+                                          'config/automoderator',
+                                          new_content, "bans")
+        except Exception as e:
+            logging.error("Failed to update bans {err}".format(err=str(e)))
+            return
+        else:
+            self.to_ban = []
+
+
+class Banner(Actor):
+    def __init__(self, *args, **kwargs):
+        super().__init__("banned", *args, **kwargs)
+
+    def action(self, post, mod, message, reason):
+        try:
+            self.sub.add_ban(post.author, duration=3,
+                             ban_message=message,
+                             ban_reason=reason + " - by " + mod)
+        except Exception as e:
+            logging.error("Failed to ban {user}: {err}"
+                          .format(user=post.author, err=e))
+            return
+
+# TODO: Factor out the part of the following that can be useful for notifier
+
+# class WarningChecker(Checker):
+#     def __init__(self, browser):
+#         self.regex = re.compile("^(w|warn)$", re.I)
+#         self.rule = "Comment Rule 1"
+#         self.types = set([praw.objects.Submission])
+#         self.note_text = (
+#         )
+#         Checker.__init__(self, browser)
+
+#     def action(self, post, mod):
+#         self.browser.cur.execute('SELECT * FROM warnings WHERE target = ?',
+#                                  (post.fullname,))
+#         if self.browser.cur.fetchall() != []:
+#             return
+
+#         rule = self.rule
+#         note_text = self.note_text
+
+#         log_text = mod + " added comment rule warning on " + \
+#              post.fullname + " by " + str(post.author)
+#         print log_text
+#         self.browser.cur.execute('INSERT INTO actions (mod, action, reason) '
+#                                  'VALUES(?,?,?)',
+#                                  (mod, "added comment warning on " +
+#                                   post.fullname + " by " + str(post.author),
+#                                   rule))
+#         self.browser.sql.commit()
+
+        # Build note text
+
+#         try:
+#             result = post.add_comment(note_text)
+#         except Exception as e:
+#             print "- Failed to add comment on " + post.fullname
+#             print str(e)
+#             return
+
+#         self.browser.cur.execute('INSERT INTO warnings (target) VALUES (?)',
+#                                  (post.fullname,))
+#         self.browser.sql.commit()
+
+#         try:
+#             post.approve()
+#             result.distinguish(sticky=True)
+#         except Exception as e:
+#             print "* Failed to distinguish comment on " + post.fullname
+#             print str(e)
+
+
+class Nuker(Actor):
+    def __init__(self, *args, **kwargs):
+        super().__init__("nuked", *args, **kwargs)
+
+    def action(self, post, mod, **kwargs):
+        try:
+            tree = praw.objects.Submission.from_url(self.browser.r,
+                                                    post.permalink)
+            tree.replace_more_comments()
+        except Exception as e:
+            # print "Failed to retrieve comment tree on" + post.fullname
+            # print e
+            return
+
+        comments = praw.helpers.flatten_tree(tree.comments)
+        for comment in comments:
+            if comment.distinguished is None:
+                try:
+                    comment.remove()
+                except Exception as e:
+                    pass
+                    # print "- Failed to remove comment " + post.fullname
+                    # print e
+
+
+# Idea: have some sort of factory thing that reads the rules and generates
+# removers *and* their controllers accordingly. Don't need a separate class.
+class RuleChecker(Actor):
+    def __init__(self, browser):
+        # self.regex = re.compile(
+        #     "^(RULE |(?P<radio>Posting Rule ))?(?P<rule>[0-9]+)"
+        #     "(?(radio) - [\w ]*)$",
+        #     re.I
+        # )
+        self.types = set([praw.objects.Submission])
+        self.header = True
+        self.footer = True
+
+    def action(self, post, mod, **kwargs):
+        rule = int(kwargs['rule'])
+        if rule > len(self.browser.reasons):
+            return
+
+        # My god this is ugly
+        # Checker.action(self, post, mod, "Rule " + str(rule),
+        #                self.browser.reasons[rule - 1])
