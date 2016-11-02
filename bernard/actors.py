@@ -1,6 +1,5 @@
 import logging
 import praw
-import urllib2
 import time
 import sqlite3
 from xml.sax.saxutils import unescape
@@ -79,7 +78,7 @@ class Notifier(Actor):
         else:
             return thing.reply(text)
 
-    def action(self, post):
+    def action(self, post, mod):
         try:
             result = self._add_reply(post, self.note_text)
         except Exception as e:
@@ -88,6 +87,8 @@ class Notifier(Actor):
             return
         else:
             self.log_notification(post, result)
+            # Perhaps we should log the notification in the controller, not in
+            # this class
 
         try:
             result.distinguish(sticky=isinstance(post,
@@ -124,7 +125,7 @@ class ShadowBanner(Actor):
 
         try:
             automod_config = self.browser.r.get_wiki_page(
-                    self.sub, 'config/automoderator')
+                self.sub, 'config/automoderator')
         except Exception as e:
             logging.error("Failed to load automod list of bans: {err}"
                           .format(err=str(e)))
@@ -148,82 +149,70 @@ class ShadowBanner(Actor):
 
 
 class Banner(Actor):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, message, reason, *args, **kwargs):
         super().__init__("banned", *args, **kwargs)
+        self.message = message
+        self.reason = reason
 
-    def action(self, post, mod, message, reason):
+    def action(self, post, mod):
         try:
             self.sub.add_ban(post.author, duration=3,
-                             ban_message=message,
-                             ban_reason=reason + " - by " + mod)
+                             ban_message=self.message,
+                             ban_reason=self.reason + " - by " + mod)
         except Exception as e:
             logging.error("Failed to ban {user}: {err}"
                           .format(user=post.author, err=e))
             return
 
-# TODO: Factor out the part of the following that can be useful for notifier
 
-# class WarningChecker(Checker):
-#     def __init__(self, browser):
-#         self.regex = re.compile("^(w|warn)$", re.I)
-#         self.rule = "Comment Rule 1"
-#         self.types = set([praw.objects.Submission])
-#         self.note_text = (
-#         )
-#         Checker.__init__(self, browser)
+class Warner(Actor):
+    def __init__(self, rule, note_text, *args, **kwargs):
+        super().__init__("warned", *args, **kwargs)
+        # self.rule might not be needed
+        self.rule = rule
+        self.note_text = note_text
 
-#     def action(self, post, mod):
-#         self.browser.cur.execute('SELECT * FROM warnings WHERE target = ?',
-#                                  (post.fullname,))
-#         if self.browser.cur.fetchall() != []:
-#             return
+    def action(self, post, mod):
+        self.cur.execute('SELECT * FROM warnings WHERE target = ?',
+                         (post.fullname,))
+        # Assumption: We can keep a table for all warnings, since a thread
+        # should never need more than one
+        if self.browser.cur.fetchall() != []:
+            return
 
-#         rule = self.rule
-#         note_text = self.note_text
+        note_text = self.note_text
 
-#         log_text = mod + " added comment rule warning on " + \
-#              post.fullname + " by " + str(post.author)
-#         print log_text
-#         self.browser.cur.execute('INSERT INTO actions (mod, action, reason) '
-#                                  'VALUES(?,?,?)',
-#                                  (mod, "added comment warning on " +
-#                                   post.fullname + " by " + str(post.author),
-#                                   rule))
-#         self.browser.sql.commit()
+        try:
+            result = post.add_comment(note_text)
+        except Exception as e:
+            logging.error("Failed to add comment on {thing}: {err}"
+                          .format(thing=post.name, err=e))
+            return
 
-        # Build note text
+        self.cur.execute('INSERT INTO warnings (target) VALUES (?)',
+                         (post.fullname,))
+        self.db.commit()
 
-#         try:
-#             result = post.add_comment(note_text)
-#         except Exception as e:
-#             print "- Failed to add comment on " + post.fullname
-#             print str(e)
-#             return
-
-#         self.browser.cur.execute('INSERT INTO warnings (target) VALUES (?)',
-#                                  (post.fullname,))
-#         self.browser.sql.commit()
-
-#         try:
-#             post.approve()
-#             result.distinguish(sticky=True)
-#         except Exception as e:
-#             print "* Failed to distinguish comment on " + post.fullname
-#             print str(e)
+        try:
+            post.approve()
+            result.distinguish(sticky=True)
+        except Exception as e:
+            logging.error("Failed to distinguish comment on {thing}: {err}"
+                          .format(thing=post.fullname, err=str(e)))
 
 
 class Nuker(Actor):
     def __init__(self, *args, **kwargs):
         super().__init__("nuked", *args, **kwargs)
 
-    def action(self, post, mod, **kwargs):
+    def action(self, post, mod):
         try:
             tree = praw.objects.Submission.from_url(self.browser.r,
                                                     post.permalink)
             tree.replace_more_comments()
         except Exception as e:
-            # print "Failed to retrieve comment tree on" + post.fullname
-            # print e
+            logging.error("Failed to retrieve comment tree on {thing}: {err}"
+                          .format(thing=post.name, err=str(e)))
             return
 
         comments = praw.helpers.flatten_tree(tree.comments)
@@ -232,29 +221,5 @@ class Nuker(Actor):
                 try:
                     comment.remove()
                 except Exception as e:
-                    pass
-                    # print "- Failed to remove comment " + post.fullname
-                    # print e
-
-
-# Idea: have some sort of factory thing that reads the rules and generates
-# removers *and* their controllers accordingly. Don't need a separate class.
-class RuleChecker(Actor):
-    def __init__(self, browser):
-        # self.regex = re.compile(
-        #     "^(RULE |(?P<radio>Posting Rule ))?(?P<rule>[0-9]+)"
-        #     "(?(radio) - [\w ]*)$",
-        #     re.I
-        # )
-        self.types = set([praw.objects.Submission])
-        self.header = True
-        self.footer = True
-
-    def action(self, post, mod, **kwargs):
-        rule = int(kwargs['rule'])
-        if rule > len(self.browser.reasons):
-            return
-
-        # My god this is ugly
-        # Checker.action(self, post, mod, "Rule " + str(rule),
-        #                self.browser.reasons[rule - 1])
+                    logging.error("Failed to remove comment {thing}: {err}"
+                                  .format(thing=comment.name, err=str(e)))
