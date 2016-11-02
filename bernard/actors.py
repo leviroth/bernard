@@ -1,25 +1,9 @@
 import logging
 import praw
-import time
-import sqlite3
 from xml.sax.saxutils import unescape
 
 
-registry = {}
-
-
-def register(cls):
-    registry[cls.__name__] = cls
-
-
-class AutoRegister(type):
-    def __new__(cls, name, bases, class_dict):
-        cls = super().__new__(cls, name, bases, class_dict)
-        register(cls)
-        return cls
-
-
-class Actor(metaclass=AutoRegister):
+class Actor():
     def __init__(self, act_name, subreddit, db):
         self.act_name = act_name
         self.sub = subreddit
@@ -98,7 +82,7 @@ class Notifier(Actor):
                           .format(thing=post.name, err=str(e)))
 
 
-class ShadowBanner(Actor):
+class Shadowbanner(Actor):
     def __init__(self, *args, **kwargs):
         super().__init__("shadowbanned", *args, **kwargs)
         self.to_ban = []
@@ -223,3 +207,13 @@ class Nuker(Actor):
                 except Exception as e:
                     logging.error("Failed to remove comment {thing}: {err}"
                                   .format(thing=comment.name, err=str(e)))
+
+
+registry = {
+    'remove': Remover,
+    'notify': Notifier,
+    'shadowban': Shadowbanner,
+    'ban': Banner,
+    'warn': Warner,
+    'nuke': Nuker
+}
