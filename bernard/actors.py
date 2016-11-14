@@ -108,8 +108,8 @@ class Shadowbanner(Actor):
         reasons = '\n'.join(['#' + ': '.join(a) for a in self.to_ban])
 
         try:
-            automod_config = self.browser.r.get_wiki_page(
-                self.sub, 'config/automoderator')
+            automod_config = self.sub.get_wiki_page(self.sub,
+                                                    'config/automoderator')
         except Exception as e:
             logging.error("Failed to load automod list of bans: {err}"
                           .format(err=str(e)))
@@ -122,7 +122,7 @@ class Shadowbanner(Actor):
                                           'do_not_remove_b, ' + names)
 
         try:
-            self.browser.r.edit_wiki_page(self.sub,
+            self.sub.edit_wiki_page(self.sub,
                                           'config/automoderator',
                                           new_content, "bans")
         except Exception as e:
@@ -191,8 +191,7 @@ class Nuker(Actor):
 
     def action(self, post, mod):
         try:
-            tree = praw.objects.Submission.from_url(self.browser.r,
-                                                    post.permalink)
+            tree = praw.objects.Submission.from_url(self.sub, post.permalink)
             tree.replace_more_comments()
         except Exception as e:
             logging.error("Failed to retrieve comment tree on {thing}: {err}"
