@@ -1,1 +1,3 @@
 *.pyc
+config.json
+config.yaml
