@@ -15,8 +15,9 @@ def build_regex(triggers):
 
 
 class YAMLLoader:
-    def __init__(self, db, subreddit):
+    def __init__(self, db, cursor, subreddit):
         self.db = db
+        self.cursor = cursor
         self.subreddit = subreddit
 
     def load(self, filename):
@@ -26,18 +27,20 @@ class YAMLLoader:
             return [self.parse_rule_config(rule_config)
                     for rule_config in self.config]
 
-    def parse_actor_config(self, actor_configs):
+    def parse_subactor_config(self, subactor_configs):
         registry = actors.registry
-        return [registry[actor_config['type']](db=self.db, subreddit=2,
-                                               **actor_config['params'])
-                for actor_config in actor_configs]
+        return [registry[subactor_config['type']](db=self.db,
+                                                  cursor=self.cursor,
+                                                  **subactor_config['params'])
+                for subactor_config in subactor_configs]
 
-    def parse_rule_config(self, rule_config):
-        return Actor(build_regex(rule_config['trigger']),
-                     [self._object_map(x) for x in rule_config['objects']],
-                     rule_config['remove'],
-                     self.parse_actor_config(rule_config['actions'])
-                     )
+    def parse_actor_config(self, actor_config):
+        return actors.Actor(
+            build_regex(actor_config['trigger']),
+            [self._object_map(x) for x in actor_config['objects']],
+            actor_config['remove'],
+            self.parse_actor_config(actor_config['actions'])
+        )
 
     # TODO: please move or reorganize - should these registries be in one
     # place?
@@ -65,72 +68,17 @@ class SubredditRuleLoader:
             note_text = "**{short_name}**\n\n{desc}".format(
                 short_name=subrule['short_name'], desc=subrule['description'])
             our_rules.append(
-                Actor(build_regex(["RULE {n}".format(n=i),
-                                  "{n}".format(n=i),
-                                   subrule['short_name']]),
-                      [praw.objects.Submission],
-                      True,
-                      [actors.Notifier(note_text=note_text,
-                                       subreddit=self.subreddit, db=self.db)]
-                      ))
+                actors.Actor(build_regex(["RULE {n}".format(n=i),
+                                          "{n}".format(n=i),
+                                          subrule['short_name']]),
+                             [praw.objects.Submission],
+                             True,
+                             [actors.Notifier(note_text=note_text,
+                                              subreddit=self.subreddit,
+                                              db=self.db)])
+            )
 
         return our_rules
-
-
-class Actor:
-    def __init__(self, trigger, targets, remove, subactors, action_name,
-                 action_details, db):
-        self.trigger = trigger
-        self.targets = targets
-        self.remove = remove
-        self.subactors = subactors
-        self.action_name = action_name
-        self.action_details = action_details
-        self.db = db
-
-    def match(self, command, post):
-        return self.trigger.match(command) \
-            and any(isinstance(post, target) for target in self.targets)
-
-    def parse(self, command, post, mod):
-        if self.match(command, post):
-            for subactor in self.subactors:
-                subactor.action(post, mod)
-
-            if self.remove:
-                post.remove()
-            else:
-                post.approve()
-
-            self.log_action(post, mod)
-
-    def after(self):
-        for actor in self.actors:
-            actor.after()
-
-    def deserialize_thing_id(thing_id):
-        return tuple(int(x, base=36) for x in thing_id[1:].split('_'))
-
-    def log_action(self, target, moderator):
-        target_type, target_id = self.deserialize_thing_id(target.fullname)
-        action_summary = self.action_name
-        action_details = self.action_details
-        _, author_id = self.deserialize_thing_id(target.author.fullname)
-        self.cur.execute('INSERT IGNORE INTO users (id, username) '
-                         'VALUES(?,?)', (author_id, target.author.fullname))
-        self.cur.execute('SELECT id FROM moderators WHERE username=?',
-                         moderator)
-        moderator_id = self.cur.fetchone()[0]
-        _, subreddit = self.deserialize_thing_id(self.subreddit.fullname)
-        self.cur.execute(
-            'INSERT INTO actions (target_type, target_id, action_summary, '
-            'action_details, author, moderator, subreddit) '
-            'VALUES(?,?,?,?,?,?,?)',
-            (target_type, target_id, action_summary, action_details, author_id,
-             moderator_id, subreddit)
-        )
-        self.db.commit()
-        return self.cur.lastrowid
 
 
 # Idea: Have different "command source" classes to pull commands from
@@ -164,10 +112,16 @@ class Browser:
                 print("Stopped by keyboard")
                 break
 
+
+def main():
+    r = praw.Reddit('bjo test')
+    r_philosophy = r.get_subreddit('philosophy')
+    db = sqlite3.connect('new.db')
+    loader = SubredditRuleLoader(db, r_philosophy)
+    rules = loader.load()
+    return rules
+
 if __name__ == '__main__':
     # l = YAMLLoader(sqlite3.connect(':memory:'), 2)
     # a = l.load('config.yaml')
-    r = praw.Reddit('bjo test')
-    s = r.get_subreddit('philosophy')
-    l = SubredditRuleLoader(sqlite3.connect(':memory:'), s)
-    rules = l.load()
+    main()

@@ -3,6 +3,62 @@ import praw
 from xml.sax.saxutils import unescape
 
 
+class Actor:
+    def __init__(self, trigger, targets, remove, subactors, action_name,
+                 action_details, db):
+        self.trigger = trigger
+        self.targets = targets
+        self.remove = remove
+        self.subactors = subactors
+        self.action_name = action_name
+        self.action_details = action_details
+        self.db = db
+
+    def match(self, command, post):
+        return self.trigger.match(command) \
+            and any(isinstance(post, target) for target in self.targets)
+
+    def parse(self, command, post, mod):
+        if self.match(command, post):
+            for subactor in self.subactors:
+                subactor.action(post, mod)
+
+            if self.remove:
+                post.remove()
+            else:
+                post.approve()
+
+            self.log_action(post, mod)
+
+    def after(self):
+        for actor in self.actors:
+            actor.after()
+
+    def deserialize_thing_id(thing_id):
+        return tuple(int(x, base=36) for x in thing_id[1:].split('_'))
+
+    def log_action(self, target, moderator):
+        target_type, target_id = self.deserialize_thing_id(target.fullname)
+        action_summary = self.action_name
+        action_details = self.action_details
+        _, author_id = self.deserialize_thing_id(target.author.fullname)
+        self.cur.execute('INSERT IGNORE INTO users (id, username) '
+                         'VALUES(?,?)', (author_id, target.author.fullname))
+        self.cur.execute('SELECT id FROM moderators WHERE username=?',
+                         moderator)
+        moderator_id = self.cur.fetchone()[0]
+        _, subreddit = self.deserialize_thing_id(self.subreddit.fullname)
+        self.cur.execute(
+            'INSERT INTO actions (target_type, target_id, action_summary, '
+            'action_details, author, moderator, subreddit) '
+            'VALUES(?,?,?,?,?,?,?)',
+            (target_type, target_id, action_summary, action_details, author_id,
+             moderator_id, subreddit)
+        )
+        self.db.commit()
+        return self.cur.lastrowid
+
+
 class Subactor():
     def __init__(self, db, cursor):
         self.db = db
@@ -21,9 +77,6 @@ class Subactor():
 
 
 class Remover(Subactor):
-    def __init__(self, *args, **kwargs):
-        super().__init__("removed", *args, **kwargs)
-
     def action(self, post, mod):
         try:
             post.remove()
@@ -48,7 +101,7 @@ class Remover(Subactor):
 
 class Notifier(Subactor):
     def __init__(self, note_text, *args, **kwargs):
-        super().__init__("notified", *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.note_text = note_text
 
     def _add_reply(thing, text):
@@ -79,7 +132,7 @@ class Notifier(Subactor):
 
 class Shadowbanner(Subactor):
     def __init__(self, *args, **kwargs):
-        super().__init__("shadowbanned", *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.to_ban = []
 
     def action(self, post, mod):
@@ -129,7 +182,7 @@ class Shadowbanner(Subactor):
 
 class Banner(Subactor):
     def __init__(self, message, reason, *args, **kwargs):
-        super().__init__("banned", *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.message = message
         self.reason = reason
 
@@ -141,12 +194,11 @@ class Banner(Subactor):
         except Exception as e:
             logging.error("Failed to ban {user}: {err}"
                           .format(user=post.author, err=e))
-            return
 
 
 class Warner(Subactor):
     def __init__(self, rule, note_text, *args, **kwargs):
-        super().__init__("warned", *args, **kwargs)
+        super().__init__(*args, **kwargs)
         # self.rule might not be needed
         self.rule = rule
         self.note_text = note_text
@@ -182,7 +234,7 @@ class Warner(Subactor):
 
 class Nuker(Subactor):
     def __init__(self, *args, **kwargs):
-        super().__init__("nuked", *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def action(self, post, mod):
         try:
