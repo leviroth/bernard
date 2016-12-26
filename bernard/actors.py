@@ -4,40 +4,15 @@ from xml.sax.saxutils import unescape
 
 
 class Actor():
-    def __init__(self, act_name, subreddit, db):
-        self.act_name = act_name
-        self.sub = subreddit
+    def __init__(self, db, cursor):
         self.db = db
-        self.cur = self.db.cursor()
+        self.cur = cursor
 
     def action(self, post, mod):
         pass
 
     def after(self):
         pass
-
-    def deserialize_thing_id(thing_id):
-        return tuple(int(x, base=36) for x in thing_id[1:].split('_'))
-
-    def log_action(self, target, details, moderator):
-        target_type, target_id = self.deserialize_thing_id(target.fullname)
-        action_summary = self.act_name
-        action_details = details
-        _, author_id = self.deserialize_thing_id(target.author.fullname)
-        self.cur.execute('INSERT IGNORE INTO users (id, username) '
-                         'VALUES(?,?)', (author_id, target.author.fullname))
-        self.cur.execute('SELECT id FROM moderators WHERE username=?',
-                         moderator)
-        moderator_id = self.cur.fetchone()[0]
-        _, subreddit = self.deserialize_thing_id(self.subreddit.fullname)
-        self.cur.execute(
-            'INSERT INTO actions (target_type, target_id, action_summary, '
-            'action_details, author, moderator, subreddit) '
-            'VALUES(?,?,?,?,?,?,?)',
-            (target_type, target_id, action_summary, action_details, author_id,
-             moderator_id, subreddit)
-        )
-        self.db.commit()
 
     def log_notification(self, parent, comment):
         self.cur.execute('INSERT INTO notifications (parent, comment) '
@@ -64,6 +39,11 @@ class Remover(Actor):
                           .format(thing=post.name, err=str(e)))
 
         return True
+
+    def log_action(self, action_id):
+        self.cur.execute('INSERT INTO removals (action_id) VALUES(?)',
+                         (action_id,))
+        self.db.commit()
 
 
 class Notifier(Actor):
