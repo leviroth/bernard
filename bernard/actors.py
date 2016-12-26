@@ -3,7 +3,7 @@ import praw
 from xml.sax.saxutils import unescape
 
 
-class Actor():
+class Subactor():
     def __init__(self, db, cursor):
         self.db = db
         self.cur = cursor
@@ -20,7 +20,7 @@ class Actor():
         self.db.commit()
 
 
-class Remover(Actor):
+class Remover(Subactor):
     def __init__(self, *args, **kwargs):
         super().__init__("removed", *args, **kwargs)
 
@@ -46,7 +46,7 @@ class Remover(Actor):
         self.db.commit()
 
 
-class Notifier(Actor):
+class Notifier(Subactor):
     def __init__(self, note_text, *args, **kwargs):
         super().__init__("notified", *args, **kwargs)
         self.note_text = note_text
@@ -77,7 +77,7 @@ class Notifier(Actor):
                           .format(thing=post.name, err=str(e)))
 
 
-class Shadowbanner(Actor):
+class Shadowbanner(Subactor):
     def __init__(self, *args, **kwargs):
         super().__init__("shadowbanned", *args, **kwargs)
         self.to_ban = []
@@ -127,7 +127,7 @@ class Shadowbanner(Actor):
             self.to_ban = []
 
 
-class Banner(Actor):
+class Banner(Subactor):
     def __init__(self, message, reason, *args, **kwargs):
         super().__init__("banned", *args, **kwargs)
         self.message = message
@@ -144,7 +144,7 @@ class Banner(Actor):
             return
 
 
-class Warner(Actor):
+class Warner(Subactor):
     def __init__(self, rule, note_text, *args, **kwargs):
         super().__init__("warned", *args, **kwargs)
         # self.rule might not be needed
@@ -180,7 +180,7 @@ class Warner(Actor):
                           .format(thing=post.fullname, err=str(e)))
 
 
-class Nuker(Actor):
+class Nuker(Subactor):
     def __init__(self, *args, **kwargs):
         super().__init__("nuked", *args, **kwargs)
 

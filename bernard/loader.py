@@ -33,11 +33,11 @@ class YAMLLoader:
                 for actor_config in actor_configs]
 
     def parse_rule_config(self, rule_config):
-        return Rule(build_regex(rule_config['trigger']),
-                    [self._object_map(x) for x in rule_config['objects']],
-                    rule_config['remove'],
-                    self.parse_actor_config(rule_config['actions'])
-                    )
+        return Actor(build_regex(rule_config['trigger']),
+                     [self._object_map(x) for x in rule_config['objects']],
+                     rule_config['remove'],
+                     self.parse_actor_config(rule_config['actions'])
+                     )
 
     # TODO: please move or reorganize - should these registries be in one
     # place?
@@ -65,25 +65,25 @@ class SubredditRuleLoader:
             note_text = "**{short_name}**\n\n{desc}".format(
                 short_name=subrule['short_name'], desc=subrule['description'])
             our_rules.append(
-                Rule(build_regex(["RULE {n}".format(n=i),
+                Actor(build_regex(["RULE {n}".format(n=i),
                                   "{n}".format(n=i),
-                                  subrule['short_name']]),
-                     [praw.objects.Submission],
-                     True,
-                     [actors.Notifier(note_text=note_text,
-                                      subreddit=self.subreddit, db=self.db)]
-                     ))
+                                   subrule['short_name']]),
+                      [praw.objects.Submission],
+                      True,
+                      [actors.Notifier(note_text=note_text,
+                                       subreddit=self.subreddit, db=self.db)]
+                      ))
 
         return our_rules
 
 
-class Rule:
-    def __init__(self, trigger, targets, remove, actors, action_name,
+class Actor:
+    def __init__(self, trigger, targets, remove, subactors, action_name,
                  action_details, db):
         self.trigger = trigger
         self.targets = targets
         self.remove = remove
-        self.actors = actors
+        self.subactors = subactors
         self.action_name = action_name
         self.action_details = action_details
         self.db = db
@@ -94,8 +94,8 @@ class Rule:
 
     def parse(self, command, post, mod):
         if self.match(command, post):
-            for actor in self.actors:
-                actor.action(post, mod)
+            for subactor in self.subactors:
+                subactor.action(post, mod)
 
             if self.remove:
                 post.remove()
