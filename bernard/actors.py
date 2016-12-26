@@ -22,15 +22,17 @@ class Actor:
 
     def parse(self, command, post, mod):
         if self.match(command, post):
+            self.log_action(post, mod)
+
             for subactor in self.subactors:
                 subactor.action(post, mod)
 
             if self.remove:
-                post.remove()
+                post.mod.remove()
             else:
-                post.approve()
+                post.mod.approve()
 
-            self.log_action(post, mod)
+            self.db.commit()
 
     def after(self):
         for actor in self.actors:
@@ -57,25 +59,20 @@ class Actor:
             (target_type, target_id, action_summary, action_details, author_id,
              moderator_id, subreddit)
         )
-        self.db.commit()
         return self.cur.lastrowid
 
 
 class Subactor():
-    def __init__(self, db, cursor):
+    def __init__(self, db, cursor, subreddit):
         self.db = db
         self.cur = cursor
+        self.subreddit = subreddit
 
     def action(self, post, mod):
         pass
 
     def after(self):
         pass
-
-    def log_notification(self, parent, comment):
-        self.cur.execute('INSERT INTO notifications (parent, comment) '
-                         'VALUES(?,?)', (parent.fullanme, comment.fullname))
-        self.db.commit()
 
 
 class Remover(Subactor):
@@ -98,23 +95,15 @@ class Remover(Subactor):
     def log_action(self, action_id):
         self.cur.execute('INSERT INTO removals (action_id) VALUES(?)',
                          (action_id,))
-        self.db.commit()
-
 
 class Notifier(Subactor):
     def __init__(self, note_text, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.note_text = note_text
 
-    def _add_reply(thing, text):
-        if isinstance(thing, praw.objects.Submission):
-            return thing.add_comment(text)
-        else:
-            return thing.reply(text)
-
     def action(self, post, mod):
         try:
-            result = self._add_reply(post, self.note_text)
+            result = post.reply(self.note_text)
         except Exception as e:
             logging.error("Failed to add comment on {thing}: {err}"
                           .format(thing=post.name, err=str(e)))
@@ -125,11 +114,18 @@ class Notifier(Subactor):
             # this class
 
         try:
-            result.distinguish(sticky=isinstance(post,
-                                                 praw.objects.Submission))
+            result.mod.distinguish(sticky=isinstance(post,
+                                                     praw.models.Submission))
         except Exception as e:
             logging.error("Failed to distinguish comment on {thing}: {err}"
                           .format(thing=post.name, err=str(e)))
+
+    def log_notification(self, parent, comment):
+        comment_id = int(comment.fullname.split('_')[1], 36)
+        self.cur.execute('SELECT max(id) FROM actions')
+        action_id = self.cur.fetchone()[0]
+        self.cur.execute('INSERT INTO notifications (comment_id, action_id) '
+                         'VALUES(?,?)', (comment_id, action_id))
 
 
 class Shadowbanner(Subactor):
@@ -224,7 +220,6 @@ class Warner(Subactor):
 
         self.cur.execute('INSERT INTO warnings (target) VALUES (?)',
                          (post.fullname,))
-        self.db.commit()
 
         try:
             post.approve()
