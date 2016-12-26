@@ -5,7 +5,7 @@ from xml.sax.saxutils import unescape
 
 class Actor:
     def __init__(self, trigger, targets, remove, subactors, action_name,
-                 action_details, db):
+                 action_details, db, cursor, subreddit):
         self.trigger = trigger
         self.targets = targets
         self.remove = remove
@@ -13,6 +13,8 @@ class Actor:
         self.action_name = action_name
         self.action_details = action_details
         self.db = db
+        self.cursor = cursor
+        self.subreddit = subreddit
 
     def match(self, command, post):
         return self.trigger.match(command) \

@@ -39,7 +39,12 @@ class YAMLLoader:
             build_regex(actor_config['trigger']),
             [self._object_map(x) for x in actor_config['objects']],
             actor_config['remove'],
-            self.parse_actor_config(actor_config['actions'])
+            self.parse_actor_config(actor_config['actions']),
+            actor_config['name'],
+            actor_config.get('details', default=''),
+            self.db,
+            self.cursor,
+            self.subreddit
         )
 
     # TODO: please move or reorganize - should these registries be in one
@@ -55,12 +60,15 @@ class YAMLLoader:
 
 
 class SubredditRuleLoader:
-    def __init__(self, db, subreddit):
+    def __init__(self, db, cursor, subreddit):
         self.db = db
+        self.cursor = cursor
         self.subreddit = subreddit
 
     def load(self):
-        subrules = [rule for rule in self.subreddit.get_rules()['rules']
+        api_path = '/r/{}/about/rules/json'.format(self.subreddit.display_name)
+        subrules = [rule
+                    for rule in self.subreddit._reddit.get(api_path)['rules']
                     if rule['kind'] == 'link' or rule['kind'] == 'all']
         our_rules = []
 
@@ -75,7 +83,13 @@ class SubredditRuleLoader:
                              True,
                              [actors.Notifier(note_text=note_text,
                                               subreddit=self.subreddit,
-                                              db=self.db)])
+                                              db=self.db)],
+                             'removed',
+                             'Rule {}'.format(i),
+                             self.db,
+                             self.cursor,
+                             self.subreddit
+                             )
             )
 
         return our_rules
@@ -117,7 +131,8 @@ def main():
     r = praw.Reddit('bjo test')
     r_philosophy = r.get_subreddit('philosophy')
     db = sqlite3.connect('new.db')
-    loader = SubredditRuleLoader(db, r_philosophy)
+    cursor = db.cursor()
+    loader = SubredditRuleLoader(db, cursor, r_philosophy)
     rules = loader.load()
     return rules
 
