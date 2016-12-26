@@ -62,7 +62,7 @@ class Actor:
         return self.cur.lastrowid
 
 
-class Subactor():
+class Subactor:
     def __init__(self, db, cursor, subreddit):
         self.db = db
         self.cur = cursor
@@ -95,6 +95,7 @@ class Remover(Subactor):
     def log_action(self, action_id):
         self.cur.execute('INSERT INTO removals (action_id) VALUES(?)',
                          (action_id,))
+
 
 class Notifier(Subactor):
     def __init__(self, note_text, *args, **kwargs):
