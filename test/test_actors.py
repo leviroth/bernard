@@ -7,5 +7,6 @@ class TestNotifier(BJOTest):
         actor = actors.Notifier("sample_text", self.db, self.cur,
                                 self.subreddit)
         post = self.r.submission(id='5kgajm')
-        actor.action(post, 'TGB')
-        self.assertEqual(8, len(post.comments))
+        with self.recorder.use_cassette('TestNotifier.test_action'):
+            actor.action(post, 'TGB')
+            self.assertEqual(11, len(post.comments))
