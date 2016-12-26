@@ -176,7 +176,7 @@ class Warner(Actor):
                          (post.fullname,))
         # Assumption: We can keep a table for all warnings, since a thread
         # should never need more than one
-        if self.browser.cur.fetchall() != []:
+        if len(self.browser.cur.fetchall()):
             return
 
         note_text = self.note_text
