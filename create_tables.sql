@@ -1,0 +1,43 @@
+CREATE TABLE users(
+  id INTEGER PRIMARY KEY,
+  username TEXT UNIQUE
+);
+
+CREATE TABLE modmails(
+  id INTEGER PRIMARY KEY,
+  author INTEGER,
+  time DATETIME,
+  body TEXT,
+  subreddit INTEGER,
+  FOREIGN KEY(author) REFERENCES users(id),
+  FOREIGN KEY(subreddit) REFERENCES subreddits(id)
+);
+
+CREATE TABLE actions(
+  target INTEGER,
+  target_type INTEGER,
+  author INTEGER,
+  moderator INTEGER,
+  time DATETIME DEFAULT CURRENT_TIMESTAMP,
+  subreddit INTEGER,
+  FOREIGN KEY(author) REFERENCES users(id),
+  FOREIGN KEY(moderator) REFERENCES moderators(id),
+  FOREIGN KEY(subreddit) REFERENCES subreddits(id)
+);
+
+CREATE TABLE moderators(
+  id INTEGER PRIMARY KEY,
+  username TEXT UNIQUE
+);
+
+CREATE TABLE subreddits(
+  id INTEGER PRIMARY KEY,
+  display_name TEXT UNIQUE
+);
+
+CREATE TABLE subreddit_moderator(
+  subreddit_id INTEGER,
+  moderator_id INTEGER,
+  FOREIGN KEY(subreddit_id) REFERENCES subreddits(id),
+  FOREIGN KEY(moderator_id) REFERENCES moderators(id)
+);
