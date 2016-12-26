@@ -123,8 +123,8 @@ class Shadowbanner(Actor):
 
         try:
             self.sub.edit_wiki_page(self.sub,
-                                          'config/automoderator',
-                                          new_content, "bans")
+                                    'config/automoderator',
+                                    new_content, "bans")
         except Exception as e:
             logging.error("Failed to update bans {err}".format(err=str(e)))
             return
