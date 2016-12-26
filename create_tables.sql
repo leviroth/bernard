@@ -14,8 +14,11 @@ CREATE TABLE modmails(
 );
 
 CREATE TABLE actions(
-  target INTEGER,
+  id INTEGER PRIMARY KEY,
   target_type INTEGER,
+  target_id INTEGER,
+  action_summary TEXT,
+  action_details TEXT,
   author INTEGER,
   moderator INTEGER,
   time DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -40,4 +43,16 @@ CREATE TABLE subreddit_moderator(
   moderator_id INTEGER,
   FOREIGN KEY(subreddit_id) REFERENCES subreddits(id),
   FOREIGN KEY(moderator_id) REFERENCES moderators(id)
+);
+
+CREATE TABLE removals(
+  action_id INTEGER,
+  reinstated INTEGER DEFAULT 0,
+  FOREIGN KEY(action_id) REFERENCES actions(id)
+);
+
+CREATE TABLE notifications(
+  comment_id INTEGER PRIMARY KEY,
+  action_id INTEGER,
+  FOREIGN KEY(action_id) REFERENCES actions(id)
 );
