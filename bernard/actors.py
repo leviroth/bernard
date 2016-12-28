@@ -233,23 +233,20 @@ class Warner(Subactor):
 
 
 class Nuker(Subactor):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def action(self, post, mod):
         try:
-            tree = praw.objects.Submission.from_url(self.sub, post.permalink)
-            tree.replace_more_comments()
+            post.refresh()
+            post.replies.replace_more()
+            flat_tree = post.replies.list() + [post]
         except Exception as e:
             logging.error("Failed to retrieve comment tree on {thing}: {err}"
                           .format(thing=post.name, err=str(e)))
             return
 
-        comments = praw.helpers.flatten_tree(tree.comments)
-        for comment in comments:
+        for comment in flat_tree:
             if comment.distinguished is None:
                 try:
-                    comment.remove()
+                    comment.mod.remove()
                 except Exception as e:
                     logging.error("Failed to remove comment {thing}: {err}"
                                   .format(thing=comment.name, err=str(e)))
