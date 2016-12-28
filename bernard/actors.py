@@ -180,16 +180,18 @@ class Shadowbanner(Subactor):
 
 
 class Banner(Subactor):
-    def __init__(self, message, reason, *args, **kwargs):
+    def __init__(self, message, reason, duration=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.message = message
         self.reason = reason
+        self.duration = duration
 
     def action(self, post, mod):
         try:
-            self.sub.add_ban(post.author, duration=3,
-                             ban_message=self.message,
-                             ban_reason=self.reason + " - by " + mod)
+            self.subreddit.banned.add(
+                post.author, duration=self.duration, ban_message=self.message,
+                ban_reason="{} - by {}".format(self.reason, mod)[:300]
+            )
         except Exception as e:
             logging.error("Failed to ban {user}: {err}"
                           .format(user=post.author, err=e))

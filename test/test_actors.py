@@ -10,3 +10,13 @@ class TestNotifier(BJOTest):
         with self.recorder.use_cassette('TestNotifier.test_action'):
             actor.action(post, 'TGB')
             self.assertEqual(11, len(post.comments))
+
+
+class TestBanner(BJOTest):
+    def test_action(self):
+        actor = actors.Banner("You banned", "testing purposes", 4,
+                              self.db, self.cur, self.subreddit)
+        post = self.r.submission(id='5e7wc7')
+        with self.recorder.use_cassette('TestBanner.test_action'):
+            actor.action(post, 'TGB')
+            self.assertIn(post.author, self.subreddit.banned())
