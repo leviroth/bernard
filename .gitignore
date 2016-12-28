@@ -1,3 +1,4 @@
 *.pyc
 config.json
 config.yaml
+test_config.json
