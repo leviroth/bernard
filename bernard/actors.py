@@ -197,41 +197,6 @@ class Banner(Subactor):
                           .format(user=post.author, err=e))
 
 
-class Warner(Subactor):
-    def __init__(self, rule, note_text, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # self.rule might not be needed
-        self.rule = rule
-        self.note_text = note_text
-
-    def action(self, post, mod):
-        self.cur.execute('SELECT * FROM warnings WHERE target = ?',
-                         (post.fullname,))
-        # Assumption: We can keep a table for all warnings, since a thread
-        # should never need more than one
-        if len(self.browser.cur.fetchall()):
-            return
-
-        note_text = self.note_text
-
-        try:
-            result = post.add_comment(note_text)
-        except Exception as e:
-            logging.error("Failed to add comment on {thing}: {err}"
-                          .format(thing=post.name, err=e))
-            return
-
-        self.cur.execute('INSERT INTO warnings (target) VALUES (?)',
-                         (post.fullname,))
-
-        try:
-            post.approve()
-            result.distinguish(sticky=True)
-        except Exception as e:
-            logging.error("Failed to distinguish comment on {thing}: {err}"
-                          .format(thing=post.fullname, err=str(e)))
-
-
 class Nuker(Subactor):
     def action(self, post, mod):
         try:
@@ -257,6 +222,5 @@ registry = {
     'notify': Notifier,
     'shadowban': Shadowbanner,
     'ban': Banner,
-    'warn': Warner,
     'nuke': Nuker
 }
