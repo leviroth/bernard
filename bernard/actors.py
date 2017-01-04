@@ -1,3 +1,4 @@
+import helpers
 import logging
 import praw
 from xml.sax.saxutils import unescape
@@ -57,20 +58,17 @@ class Actor:
         self.cursor.execute('INSERT INTO removals (action_id) VALUES(?)',
                             (action_id,))
 
-    def deserialize_thing_id(thing_id):
-        return tuple(int(x, base=36) for x in thing_id[1:].split('_'))
-
     def log_action(self, target, moderator):
-        target_type, target_id = self.deserialize_thing_id(target.fullname)
+        target_type, target_id = helpers.deserialize_thing_id(target.fullname)
         action_summary = self.action_name
         action_details = self.action_details
-        _, author_id = self.deserialize_thing_id(target.author.fullname)
+        _, author_id = helpers.deserialize_thing_id(target.author.fullname)
         self.cursor.execute('INSERT OR IGNORE INTO users (id, username) '
                             'VALUES(?,?)', (author_id, target.author.fullname))
         self.cursor.execute('SELECT id FROM moderators WHERE username=?',
                             (moderator,))
         moderator_id = self.cursor.fetchone()[0]
-        _, subreddit = self.deserialize_thing_id(self.subreddit.fullname)
+        _, subreddit = helpers.deserialize_thing_id(self.subreddit.fullname)
         self.cursor.execute(
             'INSERT INTO actions (target_type, target_id, action_summary, '
             'action_details, author, moderator, subreddit) '
