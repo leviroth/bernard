@@ -3,9 +3,17 @@ import json
 import praw
 import sqlite3
 import betamax
-import os
+import time
 from base64 import b64encode
 from betamax_serializers import pretty_json
+
+
+def _sleep(*args):
+    raise Exception('Call to sleep')
+
+
+time.sleep = _sleep
+
 
 with open('test_config.json') as f:
     placeholders = json.load(f)
@@ -14,12 +22,6 @@ with open('test_config.json') as f:
 def b64_string(input_string):
     """Return a base64 encoded string (not bytes) from input_string."""
     return b64encode(input_string.encode('utf-8')).decode('utf-8')
-
-
-def env_default(key):
-    """Return environment variable or placeholder string."""
-    return os.environ.get('prawtest_{}'.format(key),
-                          'placeholder_{}'.format(key))
 
 
 def filter_access_token(interaction, current_cassette):
@@ -55,8 +57,6 @@ class BJOTest(unittest.TestCase):
 
         self.r = praw.Reddit(**placeholders)
         self.subreddit = self.r.subreddit('thirdrealm')
-        self.username = 'BJO_test_user'
-        self.mod_username = 'BJO_test_mod'
         self.db = sqlite3.connect(':memory:')
         self.cur = self.db.cursor()
         with open('create_tables.sql') as f:

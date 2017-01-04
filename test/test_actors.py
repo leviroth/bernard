@@ -1,9 +1,11 @@
 from .helper import BJOTest
 from bernard import actors
+from mock import patch
 
 
 class TestNotifier(BJOTest):
-    def test_action(self):
+    @patch('time.sleep', return_value=None)
+    def test_action(self, _):
         actor = actors.Notifier("sample_text", self.db, self.cur,
                                 self.subreddit)
         post = self.r.submission(id='5kgajm')
@@ -13,7 +15,8 @@ class TestNotifier(BJOTest):
 
 
 class TestBanner(BJOTest):
-    def test_action(self):
+    @patch('time.sleep', return_value=None)
+    def test_action(self, _):
         actor = actors.Banner("You banned", "testing purposes", 4,
                               self.db, self.cur, self.subreddit)
         post = self.r.submission(id='5e7wc7')
@@ -23,7 +26,8 @@ class TestBanner(BJOTest):
 
 
 class TestNuker(BJOTest):
-    def test_action(self):
+    @patch('time.sleep', return_value=None)
+    def test_action(self, _):
         actor = actors.Nuker(self.db, self.cur, self.subreddit)
         post = self.r.comment(id='dbnpgmz')
         with self.recorder.use_cassette('TestNuker.test_action'):
