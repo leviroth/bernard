@@ -28,7 +28,7 @@ class Actor:
                 subactor.action(post, mod)
 
             if self.remove:
-                post.mod.remove()
+                self.remove_thing(post)
             else:
                 post.mod.approve()
 
@@ -37,6 +37,25 @@ class Actor:
     def after(self):
         for actor in self.actors:
             actor.after()
+
+    def remove_thing(self, thing):
+        try:
+            thing.remove()
+        except Exception as e:
+            logging.error("Failed to remove {thing}: {err}"
+                          .format(thing=thing, err=e))
+
+        if isinstance(thing, praw.models.Submission):
+            try:
+                thing.lock()
+            except Exception as e:
+                logging.error("Failed to lock {thing}: {err}"
+                              .format(thing=thing, err=e))
+
+        self.cur.execute('SELECT max(id) FROM actions')
+        action_id = self.cur.fetchone()[0]
+        self.cur.execute('INSERT INTO removals (action_id) VALUES(?)',
+                         (action_id,))
 
     def deserialize_thing_id(thing_id):
         return tuple(int(x, base=36) for x in thing_id[1:].split('_'))
@@ -73,28 +92,6 @@ class Subactor:
 
     def after(self):
         pass
-
-
-class Remover(Subactor):
-    def action(self, post, mod):
-        try:
-            post.remove()
-        except Exception as e:
-            logging.error("Failed to remove {thing}: {err}"
-                          .format(thing=post.name, err=str(e)))
-            return False
-
-        try:
-            post.lock()
-        except Exception as e:
-            logging.error("Failed to lock {thing}: {err}"
-                          .format(thing=post.name, err=str(e)))
-
-        return True
-
-    def log_action(self, action_id):
-        self.cur.execute('INSERT INTO removals (action_id) VALUES(?)',
-                         (action_id,))
 
 
 class Notifier(Subactor):
@@ -218,7 +215,6 @@ class Nuker(Subactor):
 
 
 registry = {
-    'remove': Remover,
     'notify': Notifier,
     'shadowban': Shadowbanner,
     'ban': Banner,
