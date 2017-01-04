@@ -52,10 +52,10 @@ class Actor:
                 logging.error("Failed to lock {thing}: {err}"
                               .format(thing=thing, err=e))
 
-        self.cur.execute('SELECT max(id) FROM actions')
-        action_id = self.cur.fetchone()[0]
-        self.cur.execute('INSERT INTO removals (action_id) VALUES(?)',
-                         (action_id,))
+        self.cursor.execute('SELECT max(id) FROM actions')
+        action_id = self.cursor.fetchone()[0]
+        self.cursor.execute('INSERT INTO removals (action_id) VALUES(?)',
+                            (action_id,))
 
     def deserialize_thing_id(thing_id):
         return tuple(int(x, base=36) for x in thing_id[1:].split('_'))
@@ -65,26 +65,25 @@ class Actor:
         action_summary = self.action_name
         action_details = self.action_details
         _, author_id = self.deserialize_thing_id(target.author.fullname)
-        self.cur.execute('INSERT IGNORE INTO users (id, username) '
-                         'VALUES(?,?)', (author_id, target.author.fullname))
-        self.cur.execute('SELECT id FROM moderators WHERE username=?',
-                         moderator)
-        moderator_id = self.cur.fetchone()[0]
+        self.cursor.execute('INSERT OR IGNORE INTO users (id, username) '
+                            'VALUES(?,?)', (author_id, target.author.fullname))
+        self.cursor.execute('SELECT id FROM moderators WHERE username=?',
+                            (moderator,))
+        moderator_id = self.cursor.fetchone()[0]
         _, subreddit = self.deserialize_thing_id(self.subreddit.fullname)
-        self.cur.execute(
+        self.cursor.execute(
             'INSERT INTO actions (target_type, target_id, action_summary, '
             'action_details, author, moderator, subreddit) '
             'VALUES(?,?,?,?,?,?,?)',
             (target_type, target_id, action_summary, action_details, author_id,
              moderator_id, subreddit)
         )
-        return self.cur.lastrowid
 
 
 class Subactor:
     def __init__(self, db, cursor, subreddit):
         self.db = db
-        self.cur = cursor
+        self.cursor = cursor
         self.subreddit = subreddit
 
     def action(self, post, mod):
@@ -120,10 +119,10 @@ class Notifier(Subactor):
 
     def log_notification(self, parent, comment):
         comment_id = int(comment.fullname.split('_')[1], 36)
-        self.cur.execute('SELECT max(id) FROM actions')
-        action_id = self.cur.fetchone()[0]
-        self.cur.execute('INSERT INTO notifications (comment_id, action_id) '
-                         'VALUES(?,?)', (comment_id, action_id))
+        self.cursor.execute('SELECT max(id) FROM actions')
+        action_id = self.cursor.fetchone()[0]
+        self.cursor.execute('INSERT INTO notifications (comment_id, '
+                            'action_id) VALUES(?,?)', (comment_id, action_id))
 
 
 class WikiWatcher(Subactor):
