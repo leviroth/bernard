@@ -49,12 +49,12 @@ class TestWikiWatcher(BJOTest):
 
     @patch('time.sleep', return_value=None)
     def test_after(self, _):
-        actor = actors.WikiWatcher('test-placeholder', self.db, self.cur,
+        actor = actors.WikiWatcher('test!placeholder', self.db, self.cur,
                                    self.subreddit)
         actor.to_add.append('BJO_test_mod')
         with self.recorder.use_cassette('TestWikiWatcher.test_after'):
             actor.after()
             automod_config = self.subreddit.wiki['config/automoderator']
             first_line = automod_config.content_md.splitlines()[0].strip()
-            self.assertEqual('author: [test-placeholder, BJO_test_mod,]',
+            self.assertEqual('author: [test!placeholder, BJO_test_mod,]',
                              first_line)
