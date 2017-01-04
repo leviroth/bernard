@@ -126,54 +126,44 @@ class Notifier(Subactor):
                          'VALUES(?,?)', (comment_id, action_id))
 
 
-class Shadowbanner(Subactor):
-    def __init__(self, *args, **kwargs):
+class WikiWatcher(Subactor):
+    def __init__(self, placeholder, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.to_ban = []
+        self.placeholder = placeholder
+        self.to_add = []
 
     def action(self, post, mod):
-        print(mod + ' is shadowbanning ' + str(post.author))
-
-        try:
-            post.remove()
-        except Exception as e:
-            logging.error("Failed to remove {thing}: {err}"
-                          .format(thing=post.name, err=str(e)))
-        else:
-            self.to_ban.append((str(post.author), post.permalink))
+        self.to_add.append(str(post.author))
 
     def after(self):
-        """Ban accumulated list of users"""
-
-        if not self.to_ban:
+        """Add accumulated list of users to AutoMod config"""
+        if not self.to_add:
             return
 
-        names = ', '.join([a for (a, b) in self.to_ban])
-        reasons = '\n'.join(['#' + ': '.join(a) for a in self.to_ban])
+        names = ', '.join(self.to_add)
 
         try:
-            automod_config = self.sub.get_wiki_page(self.sub,
-                                                    'config/automoderator')
+            automod_config = self.subreddit.wiki['config/automoderator']
         except Exception as e:
-            logging.error("Failed to load automod list of bans: {err}"
-                          .format(err=str(e)))
+            logging.error("Failed to load automod config: {err}"
+                          .format(err=e))
             return
 
         new_content = unescape(automod_config.content_md)
-        new_content = new_content.replace('#do_not_remove_a', reasons +
-                                          '\n#do_not_remove_a')
-        new_content = new_content.replace('do_not_remove_b',
-                                          'do_not_remove_b, ' + names)
+        new_content = new_content.replace(
+            self.placeholder,
+            '{placeholder}, {names}'
+            .format(placeholder=self.placeholder, names=names)
+        )
 
         try:
-            self.sub.edit_wiki_page(self.sub,
-                                    'config/automoderator',
-                                    new_content, "bans")
+            automod_config.edit(new_content)
         except Exception as e:
-            logging.error("Failed to update bans {err}".format(err=str(e)))
+            logging.error("Failed to update automod config {err}"
+                          .format(err=e))
             return
         else:
-            self.to_ban = []
+            self.to_add = []
 
 
 class Banner(Subactor):
@@ -216,7 +206,7 @@ class Nuker(Subactor):
 
 registry = {
     'notify': Notifier,
-    'shadowban': Shadowbanner,
+    'wikiwatch': WikiWatcher,
     'ban': Banner,
     'nuke': Nuker
 }
