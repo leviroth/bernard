@@ -1,5 +1,5 @@
 import actors
-import helpers
+# import helpers
 import json
 import logging
 import praw
@@ -17,37 +17,48 @@ def build_regex(triggers):
 
 
 class YAMLLoader:
-    def __init__(self, db, cursor, subreddit):
+    def __init__(self, db, cursor, reddit):
         self.db = db
         self.cursor = cursor
-        self.subreddit = subreddit
+        self.reddit = reddit
 
     def load(self, filename):
+        # for moderator in self.subreddit.moderator:
+        #     _, mod_id = helpers.deserialize_thing_id(moderator.fullname)
+        #     cursor.execute('INSERT OR IGNORE INTO moderators (id, username) '
+        #                    'VALUES(?,?)', (mod_id, str(moderator)))
         with open(filename) as f:
             if filename.endswith('.yaml'):
-                self.config = [x for x in yaml.safe_load_all(f)]
-            return [self.parse_rule_config(rule_config)
-                    for rule_config in self.config]
+                config = yaml.safe_load(f)
+        return [self.parse_subreddit_config(subreddit_config)
+                for subreddit_config in config['subreddits']]
 
-    def parse_subactor_config(self, subactor_configs):
+    def parse_subactor_config(self, subactor_configs, subreddit):
         registry = actors.registry
-        return [registry[subactor_config['type']](db=self.db,
-                                                  cursor=self.cursor,
-                                                  **subactor_config['params'])
+        return [registry[subactor_config['action']](
+            db=self.db, cursor=self.cursor, subreddit=subreddit,
+            **subactor_config['params'])
                 for subactor_config in subactor_configs]
 
-    def parse_actor_config(self, actor_config):
+    def parse_actor_config(self, actor_config, subreddit):
         return actors.Actor(
             build_regex(actor_config['trigger']),
-            [self._object_map(x) for x in actor_config['objects']],
+            [self._object_map(x) for x in actor_config['types']],
             actor_config['remove'],
-            self.parse_actor_config(actor_config['actions']),
+            self.parse_subactor_config(actor_config['actions'], subreddit),
             actor_config['name'],
-            actor_config.get('details', default=''),
+            actor_config.get('details'),
             self.db,
             self.cursor,
-            self.subreddit
+            subreddit
         )
+
+    def parse_subreddit_config(self, subreddit_config):
+        subreddit = self.reddit.subreddit(subreddit_config['name'])
+        actors = [self.parse_actor_config(actor_config, subreddit)
+                  for actor_config in subreddit_config['rules']]
+        actors.extend(load_subreddit_rules(subreddit, self.db, self.cursor))
+        return Browser(actors, subreddit, self.db, self.cursor)
 
     # TODO: please move or reorganize - should these registries be in one
     # place?
@@ -56,53 +67,41 @@ class YAMLLoader:
     # of YAML - and ideally JSON as well
     def _object_map(self, obj):
         if obj == "post":
-            return praw.objects.Submission
+            return praw.models.Submission
         if obj == "comment":
-            return praw.objects.Comment
+            return praw.models.Comment
 
 
-class SubredditRuleLoader:
-    def __init__(self, db, cursor, subreddit):
-        self.db = db
-        self.cursor = cursor
-        self.subreddit = subreddit
+def load_subreddit_rules(subreddit, db, cursor):
+    api_path = '/r/{}/about/rules.json'.format(subreddit.display_name)
+    subrules = [rule
+                for rule in subreddit._reddit.get(api_path)['rules']
+                if rule['kind'] == 'link' or rule['kind'] == 'all']
+    our_rules = []
 
-    def load(self):
-        api_path = '/r/{}/about/rules/json'.format(self.subreddit.display_name)
-        subrules = [rule
-                    for rule in self.subreddit._reddit.get(api_path)['rules']
-                    if rule['kind'] == 'link' or rule['kind'] == 'all']
-        our_rules = []
+    for i, subrule in enumerate(subrules, 1):
+        note_text = "**{short_name}**\n\n{desc}".format(
+            short_name=subrule['short_name'], desc=subrule['description'])
+        command = build_regex(["RULE {n}".format(n=i), "{n}".format(n=i),
+                               subrule['short_name']])
+        actions = [actors.Notifier(text=note_text, subreddit=subreddit,
+                                   db=db, cursor=cursor)]
+        our_rules.append(
+            actors.Actor(command, [praw.models.Submission], True, actions,
+                         'removed', 'Rule {}'.format(i), db, cursor, subreddit)
+        )
 
-        for i, subrule in enumerate(subrules, 1):
-            note_text = "**{short_name}**\n\n{desc}".format(
-                short_name=subrule['short_name'], desc=subrule['description'])
-            our_rules.append(
-                actors.Actor(build_regex(["RULE {n}".format(n=i),
-                                          "{n}".format(n=i),
-                                          subrule['short_name']]),
-                             [praw.objects.Submission],
-                             True,
-                             [actors.Notifier(note_text=note_text,
-                                              subreddit=self.subreddit,
-                                              db=self.db)],
-                             'removed',
-                             'Rule {}'.format(i),
-                             self.db,
-                             self.cursor,
-                             self.subreddit
-                             )
-            )
-
-        return our_rules
+    return our_rules
 
 
 # Idea: Have different "command source" classes to pull commands from
 # reports, Slack, etc.
 class Browser:
-    def __init__(self, rules, subreddit):
+    def __init__(self, rules, subreddit, db, cursor):
         self.rules = rules
         self.subreddit = subreddit
+        self.db = db
+        self.cursor = cursor
 
     def check_command(self, command, mod, post):
         for rule in self.rules:
@@ -110,7 +109,7 @@ class Browser:
 
     def scan_reports(self):
         try:
-            for post in self.subreddit.get_reports(limit=None):
+            for post in self.subreddit.mod.reports(limit=None):
                 for mod_report in post.mod_reports:
                     yield (mod_report[0], mod_report[1], post)
         except Exception as e:
@@ -119,8 +118,8 @@ class Browser:
     def run(self):
         while True:
             try:
-                for command in self.scan_reports():
-                    self.check_command(*command)
+                for command, mod, post in self.scan_reports():
+                    self.check_command(command, mod, post)
                 for rule in self.rules:
                     rule.after()
                 time.sleep(30)

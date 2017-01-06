@@ -21,7 +21,7 @@ class Actor:
         return self.trigger.match(command) \
             and any(isinstance(post, target) for target in self.targets)
 
-    def parse(self, command, post, mod):
+    def parse(self, command, mod, post):
         if self.match(command, post):
             self.log_action(post, mod)
 
@@ -36,19 +36,19 @@ class Actor:
             self.db.commit()
 
     def after(self):
-        for actor in self.actors:
-            actor.after()
+        for subactor in self.subactors:
+            subactor.after()
 
     def remove_thing(self, thing):
         try:
-            thing.remove()
+            thing.mod.remove()
         except Exception as e:
             logging.error("Failed to remove {thing}: {err}"
                           .format(thing=thing, err=e))
 
         if isinstance(thing, praw.models.Submission):
             try:
-                thing.lock()
+                thing.mod.lock()
             except Exception as e:
                 logging.error("Failed to lock {thing}: {err}"
                               .format(thing=thing, err=e))
@@ -92,13 +92,13 @@ class Subactor:
 
 
 class Notifier(Subactor):
-    def __init__(self, note_text, *args, **kwargs):
+    def __init__(self, text, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.note_text = note_text
+        self.text = text
 
     def action(self, post, mod):
         try:
-            result = post.reply(self.note_text)
+            result = post.reply(self.text)
         except Exception as e:
             logging.error("Failed to add comment on {thing}: {err}"
                           .format(thing=post.name, err=str(e)))
