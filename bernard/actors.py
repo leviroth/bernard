@@ -1,6 +1,7 @@
 import helpers
 import logging
 import praw
+import urllib.parse
 from xml.sax.saxutils import unescape
 
 
@@ -97,8 +98,10 @@ class Notifier(Subactor):
         self.text = text
 
     def action(self, post, mod):
+        url = urllib.parse.quote(post.permalink.encode('utf-8'))
+        text = self.text.replace('{url}', url)
         try:
-            result = post.reply(self.text)
+            result = post.reply(text)
         except Exception as e:
             logging.error("Failed to add comment on {thing}: {err}"
                           .format(thing=post.name, err=str(e)))
