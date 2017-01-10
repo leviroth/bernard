@@ -63,16 +63,14 @@ class Actor:
         target_type, target_id = helpers.deserialize_thing_id(target.fullname)
         action_summary = self.action_name
         action_details = self.action_details
-        _, author_id = helpers.deserialize_thing_id(target.author.fullname)
+        author_id = helpers.get_user_id(target.author.name, self.cursor,
+                                        self.subreddit._reddit)
+        moderator_id = helpers.get_user_id(moderator, self.cursor,
+                                           self.subreddit._reddit)
         self.cursor.execute('INSERT OR IGNORE INTO users (id, username) '
-                            'VALUES(?,?)', (author_id, target.author.fullname))
-        self.cursor.execute('SELECT id FROM users WHERE username=?',
-                            (moderator,))
-        try:
-            moderator_id = self.cursor.fetchone()[0]
-        except TypeError:
-            moderator_id_str = self.subreddit._reddit.user(moderator).fullname
-            _, moderator_id = helpers.deserialize_thing_id(moderator_id_str)
+                            'VALUES(?,?)', (author_id, target.author.name))
+        self.cursor.execute('INSERT OR IGNORE INTO users (id, username) '
+                            'VALUES(?,?)', (moderator_id, moderator))
         _, subreddit = helpers.deserialize_thing_id(self.subreddit.fullname)
         self.cursor.execute(
             'INSERT INTO actions (target_type, target_id, action_summary, '
