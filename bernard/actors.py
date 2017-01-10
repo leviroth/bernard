@@ -1,4 +1,4 @@
-from . import helpers
+import helpers
 import logging
 import praw
 import urllib.parse

@@ -7,6 +7,9 @@ import time
 from base64 import b64encode
 from betamax_serializers import pretty_json
 
+import sys
+sys.path.append('bernard/')
+
 
 def _sleep(*args):
     raise Exception('Call to sleep')
