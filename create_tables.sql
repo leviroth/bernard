@@ -24,13 +24,8 @@ CREATE TABLE actions(
   time DATETIME DEFAULT CURRENT_TIMESTAMP,
   subreddit INTEGER,
   FOREIGN KEY(author) REFERENCES users(id),
-  FOREIGN KEY(moderator) REFERENCES moderators(id),
+  FOREIGN KEY(moderator) REFERENCES users(id),
   FOREIGN KEY(subreddit) REFERENCES subreddits(id)
-);
-
-CREATE TABLE moderators(
-  id INTEGER PRIMARY KEY,
-  username TEXT UNIQUE
 );
 
 CREATE TABLE subreddits(
@@ -42,7 +37,7 @@ CREATE TABLE subreddit_moderator(
   subreddit_id INTEGER,
   moderator_id INTEGER,
   FOREIGN KEY(subreddit_id) REFERENCES subreddits(id),
-  FOREIGN KEY(moderator_id) REFERENCES moderators(id)
+  FOREIGN KEY(moderator_id) REFERENCES users(id)
 );
 
 CREATE TABLE removals(

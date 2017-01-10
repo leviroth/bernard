@@ -1,5 +1,5 @@
 import actors
-# import helpers
+import helpers
 import json
 import logging
 import praw
@@ -23,10 +23,6 @@ class YAMLLoader:
         self.reddit = reddit
 
     def load(self, filename):
-        # for moderator in self.subreddit.moderator:
-        #     _, mod_id = helpers.deserialize_thing_id(moderator.fullname)
-        #     cursor.execute('INSERT OR IGNORE INTO moderators (id, username) '
-        #                    'VALUES(?,?)', (mod_id, str(moderator)))
         with open(filename) as f:
             if filename.endswith('.yaml'):
                 config = yaml.safe_load(f)
@@ -61,6 +57,12 @@ class YAMLLoader:
         footer = subreddit_config.get('footer')
         actors.extend(load_subreddit_rules(subreddit, header, footer, self.db,
                                            self.cursor))
+
+        for moderator in subreddit.moderator:
+            _, mod_id = helpers.deserialize_thing_id(moderator.fullname)
+            cursor.execute('INSERT OR IGNORE INTO users (id, username) '
+                           'VALUES(?,?)', (mod_id, str(moderator)))
+
         return Browser(actors, subreddit, self.db, self.cursor)
 
     # TODO: please move or reorganize - should these registries be in one
