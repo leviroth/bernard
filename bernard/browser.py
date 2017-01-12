@@ -1,13 +1,13 @@
 class Browser:
-    def __init__(self, rules, subreddit, db, cursor):
-        self.rules = rules
+    def __init__(self, actors, subreddit, db, cursor):
+        self.actors = actors
         self.subreddit = subreddit
         self.db = db
         self.cursor = cursor
 
     def check_command(self, command, mod, post):
-        for rule in self.rules:
-            rule.parse(command, mod, post)
+        for actor in self.rules:
+            actor.parse(command, mod, post)
 
     def scan_reports(self):
         try:
@@ -22,8 +22,8 @@ class Browser:
             try:
                 for command, mod, post in self.scan_reports():
                     self.check_command(command, mod, post)
-                for rule in self.rules:
-                    rule.after()
+                for actor in self.rules:
+                    actor.after()
                 time.sleep(30)
             except KeyboardInterrupt:
                 print("Stopped by keyboard")
