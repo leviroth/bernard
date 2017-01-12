@@ -24,13 +24,13 @@ class Actor:
 
     def parse(self, command, mod, post):
         if self.match(command, post):
-            self.log_action(post, mod)
+            action_id = self.log_action(post, mod)
 
             for subactor in self.subactors:
-                subactor.action(post, mod)
+                subactor.action(post, mod, action_id=action_id)
 
             if self.remove:
-                self.remove_thing(post)
+                self.remove_thing(post, action_id=action_id)
             else:
                 post.mod.approve()
 
@@ -40,7 +40,7 @@ class Actor:
         for subactor in self.subactors:
             subactor.after()
 
-    def remove_thing(self, thing):
+    def remove_thing(self, thing, action_id):
         try:
             thing.mod.remove()
         except Exception as e:
@@ -54,8 +54,6 @@ class Actor:
                 logging.error("Failed to lock {thing}: {err}"
                               .format(thing=thing, err=e))
 
-        self.cursor.execute('SELECT max(id) FROM actions')
-        action_id = self.cursor.fetchone()[0]
         self.cursor.execute('INSERT INTO removals (action_id) VALUES(?)',
                             (action_id,))
 
@@ -82,6 +80,8 @@ class Actor:
              moderator_id, subreddit)
         )
 
+        return self.cursor.lastrowid
+
 
 class Subactor:
     def __init__(self, db, cursor, subreddit):
@@ -89,7 +89,7 @@ class Subactor:
         self.cursor = cursor
         self.subreddit = subreddit
 
-    def action(self, post, mod):
+    def action(self, post, mod, action_id):
         pass
 
     def after(self):
@@ -101,7 +101,7 @@ class Notifier(Subactor):
         super().__init__(*args, **kwargs)
         self.text = text
 
-    def action(self, post, mod):
+    def action(self, post, mod, action_id):
         url = urllib.parse.quote(post.permalink.encode('utf-8'))
         text = self.text.replace('{url}', url)
         try:
@@ -111,7 +111,7 @@ class Notifier(Subactor):
                           .format(thing=post.name, err=str(e)))
             return
         else:
-            self.log_notification(post, result)
+            self.log_notification(post, result, action_id)
             # Perhaps we should log the notification in the controller, not in
             # this class
 
@@ -122,10 +122,8 @@ class Notifier(Subactor):
             logging.error("Failed to distinguish comment on {thing}: {err}"
                           .format(thing=post.name, err=str(e)))
 
-    def log_notification(self, parent, comment):
+    def log_notification(self, parent, comment, action_id):
         _, comment_id = helpers.deserialize_thing_id(comment.fullname)
-        self.cursor.execute('SELECT max(id) FROM actions')
-        action_id = self.cursor.fetchone()[0]
         self.cursor.execute('INSERT INTO notifications (comment_id, '
                             'action_id) VALUES(?,?)', (comment_id, action_id))
 
@@ -136,7 +134,7 @@ class WikiWatcher(Subactor):
         self.placeholder = placeholder
         self.to_add = []
 
-    def action(self, post, mod):
+    def action(self, post, mod, action_id):
         self.to_add.append(str(post.author))
 
     def after(self):
@@ -177,7 +175,7 @@ class Banner(Subactor):
         self.reason = reason
         self.duration = duration
 
-    def action(self, post, mod):
+    def action(self, post, mod, action_id):
         try:
             self.subreddit.banned.add(
                 post.author, duration=self.duration, ban_message=self.message,
@@ -189,7 +187,7 @@ class Banner(Subactor):
 
 
 class Nuker(Subactor):
-    def action(self, post, mod):
+    def action(self, post, mod, action_id):
         try:
             post.refresh()
             post.replies.replace_more()

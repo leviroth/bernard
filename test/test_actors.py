@@ -56,7 +56,7 @@ class TestBanner(BJOTest):
                               self.db, self.cur, self.subreddit)
         post = self.r.submission(id='5e7wc7')
         with self.recorder.use_cassette('TestBanner.test_action'):
-            actor.action(post, 'TGB')
+            actor.action(post, 'TGB', action_id=1)
             self.assertIn(post.author, self.subreddit.banned())
 
 
@@ -67,7 +67,7 @@ class TestNotifier(BJOTest):
                                 self.subreddit)
         post = self.r.submission(id='5kgajm')
         with self.recorder.use_cassette('TestNotifier.test_action'):
-            actor.action(post, 'TGB')
+            actor.action(post, 'TGB', action_id=1)
             self.assertEqual(11, len(post.comments))
 
 
@@ -77,7 +77,7 @@ class TestNuker(BJOTest):
         actor = actors.Nuker(self.db, self.cur, self.subreddit)
         post = self.r.comment(id='dbnpgmz')
         with self.recorder.use_cassette('TestNuker.test_action'):
-            actor.action(post, 'TGB')
+            actor.action(post, 'TGB', action_id=1)
             child = self.r.comment(id='dbpa8kn')
             child.refresh()
             self.assertIsNotNone(child.banned_by)
@@ -89,7 +89,7 @@ class TestWikiWatcher(BJOTest):
                                    self.subreddit)
         post = self.r.comment(id='dbnpgmz')
         with self.recorder.use_cassette('TestWikiWatcher.test_action'):
-            actor.action(post, 'TGB')
+            actor.action(post, 'TGB', action_id=1)
             self.assertEqual(1, len(actor.to_add))
             self.assertEqual('BJO_test_mod', actor.to_add[0])
 
