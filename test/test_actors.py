@@ -1,6 +1,36 @@
+import praw
+import re
 from .helper import BJOTest
 from bernard import actors
 from mock import patch
+
+
+class TestActor(BJOTest):
+    def setUp(self):
+        super().setUp()
+        notifier = actors.Notifier('A notifcation', self.db, self.cur,
+                                   self.subreddit)
+        self.actor = actors.Actor(
+            trigger=re.compile('foo', re.I),
+            targets=[praw.models.Submission],
+            remove=True,
+            subactors=[notifier],
+            action_name="Remove",
+            action_details=None,
+            db=self.db,
+            cursor=self.cur,
+            subreddit=self.subreddit
+        )
+    def test_match__correct_type(self):
+        post = self.r.submission(id='5e7x7o')
+        with self.recorder.use_cassette('TestActor.test_match__correct_type'):
+            self.assertTrue(self.actor.match('foo', post))
+
+
+    def test_match__incorrect_type(self):
+        post = self.r.comment(id='dbnq46r')
+        with self.recorder.use_cassette('TestActor.test_match__incorrect_type'):
+            self.assertFalse(self.actor.match('foo', post))
 
 
 class TestBanner(BJOTest):
