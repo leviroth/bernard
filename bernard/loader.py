@@ -58,6 +58,10 @@ class YAMLLoader:
         actors.extend(load_subreddit_rules(subreddit, header, footer, self.db,
                                            self.cursor))
 
+        _, subreddit_id = helpers.deserialize_thing_id(subreddit.fullname)
+        cursor.execute('INSERT OR IGNORE INTO subreddits (id, display_name) '
+                       'VALUES(?,?)', (subreddit_id, str(subreddit)))
+
         for moderator in subreddit.moderator:
             cursor.execute('INSERT OR IGNORE INTO users (username) '
                            'VALUES(?)', (str(moderator),))
