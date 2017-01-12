@@ -6,7 +6,7 @@ class Browser:
         self.cursor = cursor
 
     def check_command(self, command, mod, post):
-        for actor in self.rules:
+        for actor in self.actors:
             actor.parse(command, mod, post)
 
     def scan_reports(self):
@@ -20,5 +20,5 @@ class Browser:
     def run(self):
         for command, mod, post in self.scan_reports():
             self.check_command(command, mod, post)
-        for actor in self.rules:
+        for actor in self.actors:
             actor.after()
