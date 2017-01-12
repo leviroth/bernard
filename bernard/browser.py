@@ -18,13 +18,7 @@ class Browser:
             logging.error("Error fetching reports: {err}".format(err=e))
 
     def run(self):
-        while True:
-            try:
-                for command, mod, post in self.scan_reports():
-                    self.check_command(command, mod, post)
-                for actor in self.rules:
-                    actor.after()
-                time.sleep(30)
-            except KeyboardInterrupt:
-                print("Stopped by keyboard")
-                break
+        for command, mod, post in self.scan_reports():
+            self.check_command(command, mod, post)
+        for actor in self.rules:
+            actor.after()
