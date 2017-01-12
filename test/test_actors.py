@@ -21,6 +21,7 @@ class TestActor(BJOTest):
             cursor=self.cur,
             subreddit=self.subreddit
         )
+
     def test_match__correct_type(self):
         post = self.r.submission(id='5e7x7o')
         with self.recorder.use_cassette('TestActor.test_match__correct_type'):
