@@ -1,0 +1,224 @@
+{
+  "http_interactions": [
+    {
+      "recorded_at": "2017-01-12T22:14:35",
+      "request": {
+        "body": {
+          "encoding": "utf-8",
+          "string": "grant_type=password&password=<PASSWORD>&username=<USERNAME>"
+        },
+        "headers": {
+          "Accept": "*/*",
+          "Accept-Encoding": "identity",
+          "Authorization": "Basic <BASIC_AUTH>",
+          "Connection": "keep-alive",
+          "Content-Length": "57",
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "<USER_AGENT> PRAW/4.2.0 prawcore/0.6.0"
+        },
+        "method": "POST",
+        "uri": "https://www.reddit.com/api/v1/access_token"
+      },
+      "response": {
+        "body": {
+          "encoding": "UTF-8",
+          "string": "{\"access_token\": \"<ACCESS_TOKEN>\", \"token_type\": \"bearer\", \"expires_in\": 3600, \"scope\": \"*\"}"
+        },
+        "headers": {
+          "Accept-Ranges": "bytes",
+          "Connection": "keep-alive",
+          "Content-Length": "105",
+          "Content-Type": "application/json; charset=UTF-8",
+          "Date": "Thu, 12 Jan 2017 22:14:35 GMT",
+          "Server": "snooserv",
+          "Set-Cookie": "loid=wkCl5xKakKG8SFBvYa; Domain=reddit.com; Max-Age=63071999; Path=/;  secure",
+          "Strict-Transport-Security": "max-age=15552000; includeSubDomains; preload",
+          "Via": "1.1 varnish",
+          "X-Cache": "MISS",
+          "X-Cache-Hits": "0",
+          "X-Moose": "majestic",
+          "X-Served-By": "cache-atl6244-ATL",
+          "X-Timer": "S1484259275.393010,VS0,VE380",
+          "cache-control": "max-age=0, must-revalidate",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-xss-protection": "1; mode=block"
+        },
+        "status": {
+          "code": 200,
+          "message": "OK"
+        },
+        "url": "https://www.reddit.com/api/v1/access_token"
+      }
+    },
+    {
+      "recorded_at": "2017-01-12T22:14:36",
+      "request": {
+        "body": {
+          "encoding": "utf-8",
+          "string": ""
+        },
+        "headers": {
+          "Accept": "*/*",
+          "Accept-Encoding": "identity",
+          "Authorization": "bearer <ACCESS_TOKEN>",
+          "Connection": "keep-alive",
+          "Cookie": "loid=wkCl5xKakKG8SFBvYa; loidcreated=1484259275000",
+          "User-Agent": "<USER_AGENT> PRAW/4.2.0 prawcore/0.6.0"
+        },
+        "method": "GET",
+        "uri": "https://oauth.reddit.com/r/thirdrealm/about/reports/?limit=1024&raw_json=1"
+      },
+      "response": {
+        "body": {
+          "encoding": "UTF-8",
+          "string": "{\"kind\": \"Listing\", \"data\": {\"modhash\": null, \"children\": [{\"kind\": \"t3\", \"data\": {\"contest_mode\": false, \"banned_by\": null, \"domain\": \"self.ThirdRealm\", \"subreddit\": \"ThirdRealm\", \"selftext_html\": null, \"selftext\": \"\", \"likes\": null, \"suggested_sort\": null, \"user_reports\": [], \"secure_media\": null, \"saved\": false, \"id\": \"5e7wc7\", \"media_embed\": {}, \"gilded\": 0, \"secure_media_embed\": {}, \"clicked\": false, \"report_reasons\": [\"This attribute is deprecated. Please use mod_reports and user_reports instead.\"], \"author\": \"BJO_test_user\", \"media\": null, \"score\": 1, \"approved_by\": null, \"over_18\": false, \"hidden\": false, \"num_comments\": 0, \"thumbnail\": \"\", \"subreddit_id\": \"t5_390u2\", \"edited\": false, \"link_flair_css_class\": null, \"author_flair_css_class\": \"\", \"title\": \"CheckerTest.test_action\", \"downs\": 0, \"archived\": false, \"removal_reason\": null, \"stickied\": false, \"is_self\": true, \"removed\": false, \"approved\": false, \"hide_score\": false, \"spoiler\": false, \"permalink\": \"/r/ThirdRealm/comments/5e7wc7/checkertesttest_action/\", \"locked\": false, \"name\": \"t3_5e7wc7\", \"created\": 1479806153.0, \"url\": \"https://www.reddit.com/r/ThirdRealm/comments/5e7wc7/checkertesttest_action/\", \"author_flair_text\": \"ayy .:lmao\", \"quarantine\": false, \"spam\": false, \"created_utc\": 1479777353.0, \"link_flair_text\": null, \"ups\": 1, \"mod_reports\": [[\"foo\", \"TheGrammarBolshevik\"]], \"visited\": false, \"num_reports\": 1, \"distinguished\": null}}], \"after\": null, \"before\": null}}"
+        },
+        "headers": {
+          "Accept-Ranges": "bytes",
+          "Connection": "keep-alive",
+          "Content-Length": "1461",
+          "Content-Type": "application/json; charset=UTF-8",
+          "Date": "Thu, 12 Jan 2017 22:14:36 GMT",
+          "Server": "snooserv",
+          "Strict-Transport-Security": "max-age=15552000; includeSubDomains; preload",
+          "Vary": "accept-encoding",
+          "Via": "1.1 varnish",
+          "X-Cache": "MISS",
+          "X-Cache-Hits": "0",
+          "X-Moose": "majestic",
+          "X-Served-By": "cache-atl6248-ATL",
+          "X-Timer": "S1484259276.186382,VS0,VE318",
+          "cache-control": "private, s-maxage=0, max-age=0, must-revalidate, max-age=0, must-revalidate",
+          "expires": "-1",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-ratelimit-remaining": "598.0",
+          "x-ratelimit-reset": "324",
+          "x-ratelimit-used": "2",
+          "x-reddit-tracking": "https://pixel.redditmedia.com/pixel/of_destiny.png?v=4pFzdBUjuHd6dsB6FBawfX1bMAR0r0j1r0%2F2Ud9d7uAOzapa97a3En04l%2F%2FqFO1tFNY%2Fe5GGw1lLzwPGpLhXLsEs2K%2BykX9h",
+          "x-ua-compatible": "IE=edge",
+          "x-xss-protection": "1; mode=block"
+        },
+        "status": {
+          "code": 200,
+          "message": "OK"
+        },
+        "url": "https://oauth.reddit.com/r/thirdrealm/about/reports/?limit=1024&raw_json=1"
+      }
+    },
+    {
+      "recorded_at": "2017-01-12T22:14:36",
+      "request": {
+        "body": {
+          "encoding": "utf-8",
+          "string": ""
+        },
+        "headers": {
+          "Accept": "*/*",
+          "Accept-Encoding": "identity",
+          "Authorization": "bearer <ACCESS_TOKEN>",
+          "Connection": "keep-alive",
+          "Cookie": "loid=wkCl5xKakKG8SFBvYa; loidcreated=1484259275000",
+          "User-Agent": "<USER_AGENT> PRAW/4.2.0 prawcore/0.6.0"
+        },
+        "method": "GET",
+        "uri": "https://oauth.reddit.com/r/thirdrealm/about/?raw_json=1"
+      },
+      "response": {
+        "body": {
+          "encoding": "UTF-8",
+          "string": "{\"kind\": \"t5\", \"data\": {\"banner_img\": \"\", \"submit_text_html\": null, \"user_is_banned\": false, \"wiki_enabled\": true, \"show_media\": false, \"id\": \"390u2\", \"user_is_contributor\": true, \"submit_text\": \"\", \"display_name\": \"ThirdRealm\", \"header_img\": null, \"description_html\": null, \"title\": \"Frege's platonic heaven\", \"collapse_deleted_comments\": false, \"public_description\": \"\", \"over18\": false, \"public_description_html\": null, \"spoilers_enabled\": false, \"icon_size\": null, \"suggested_comment_sort\": null, \"icon_img\": \"\", \"header_title\": null, \"description\": \"\", \"user_is_muted\": false, \"submit_link_label\": null, \"accounts_active\": 2, \"public_traffic\": false, \"header_size\": null, \"subscribers\": 1, \"submit_text_label\": null, \"lang\": \"en\", \"key_color\": \"\", \"name\": \"t5_390u2\", \"created\": 1436378089.0, \"url\": \"/r/ThirdRealm/\", \"quarantine\": false, \"hide_ads\": false, \"created_utc\": 1436349289.0, \"banner_size\": null, \"user_is_moderator\": true, \"user_sr_theme_enabled\": true, \"show_media_preview\": true, \"comment_score_hide_mins\": 0, \"subreddit_type\": \"private\", \"submission_type\": \"any\", \"user_is_subscriber\": false}}"
+        },
+        "headers": {
+          "Accept-Ranges": "bytes",
+          "Connection": "keep-alive",
+          "Content-Length": "1113",
+          "Content-Type": "application/json; charset=UTF-8",
+          "Date": "Thu, 12 Jan 2017 22:14:36 GMT",
+          "Server": "snooserv",
+          "Strict-Transport-Security": "max-age=15552000; includeSubDomains; preload",
+          "Vary": "accept-encoding",
+          "Via": "1.1 varnish",
+          "X-Cache": "MISS",
+          "X-Cache-Hits": "0",
+          "X-Moose": "majestic",
+          "X-Served-By": "cache-atl6248-ATL",
+          "X-Timer": "S1484259276.563694,VS0,VE95",
+          "cache-control": "private, s-maxage=0, max-age=0, must-revalidate, max-age=0, must-revalidate",
+          "expires": "-1",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-ratelimit-remaining": "597.0",
+          "x-ratelimit-reset": "324",
+          "x-ratelimit-used": "3",
+          "x-reddit-tracking": "https://pixel.redditmedia.com/pixel/of_destiny.png?v=J4Jh0kgLz2StVc6YDuGmKEpl26ZKiOnR3p%2B9GgmadUzyeXiKD3YxvseojVRQACsFGbV7AlP3maCDQkt7kXN6taY8kl8C8Js7",
+          "x-ua-compatible": "IE=edge",
+          "x-xss-protection": "1; mode=block"
+        },
+        "status": {
+          "code": 200,
+          "message": "OK"
+        },
+        "url": "https://oauth.reddit.com/r/thirdrealm/about/?raw_json=1"
+      }
+    },
+    {
+      "recorded_at": "2017-01-12T22:14:36",
+      "request": {
+        "body": {
+          "encoding": "utf-8",
+          "string": "api_type=json&id=t3_5e7wc7"
+        },
+        "headers": {
+          "Accept": "*/*",
+          "Accept-Encoding": "identity",
+          "Authorization": "bearer <ACCESS_TOKEN>",
+          "Connection": "keep-alive",
+          "Content-Length": "26",
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Cookie": "loid=wkCl5xKakKG8SFBvYa; loidcreated=1484259275000",
+          "User-Agent": "<USER_AGENT> PRAW/4.2.0 prawcore/0.6.0"
+        },
+        "method": "POST",
+        "uri": "https://oauth.reddit.com/api/approve/?raw_json=1"
+      },
+      "response": {
+        "body": {
+          "encoding": "UTF-8",
+          "string": "{}"
+        },
+        "headers": {
+          "Accept-Ranges": "bytes",
+          "Connection": "keep-alive",
+          "Content-Length": "2",
+          "Content-Type": "application/json; charset=UTF-8",
+          "Date": "Thu, 12 Jan 2017 22:14:36 GMT",
+          "Server": "snooserv",
+          "Strict-Transport-Security": "max-age=15552000; includeSubDomains; preload",
+          "Via": "1.1 varnish",
+          "X-Cache": "MISS",
+          "X-Cache-Hits": "0",
+          "X-Moose": "majestic",
+          "X-Served-By": "cache-atl6248-ATL",
+          "X-Timer": "S1484259276.698395,VS0,VE146",
+          "cache-control": "private, s-maxage=0, max-age=0, must-revalidate, max-age=0, must-revalidate",
+          "expires": "-1",
+          "x-content-type-options": "nosniff",
+          "x-frame-options": "SAMEORIGIN",
+          "x-ratelimit-remaining": "596.0",
+          "x-ratelimit-reset": "324",
+          "x-ratelimit-used": "4",
+          "x-ua-compatible": "IE=edge",
+          "x-xss-protection": "1; mode=block"
+        },
+        "status": {
+          "code": 200,
+          "message": "OK"
+        },
+        "url": "https://oauth.reddit.com/api/approve/?raw_json=1"
+      }
+    }
+  ],
+  "recorded_with": "betamax/0.8.0"
+}
