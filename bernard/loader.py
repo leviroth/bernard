@@ -59,10 +59,8 @@ class YAMLLoader:
                                            self.cursor))
 
         for moderator in subreddit.moderator:
-            mod_id = helpers.get_user_id(moderator.name, self.cursor,
-                                         self.reddit)
-            cursor.execute('INSERT OR IGNORE INTO users (id, username) '
-                           'VALUES(?,?)', (mod_id, str(moderator)))
+            cursor.execute('INSERT OR IGNORE INTO users (username) '
+                           'VALUES(?)', (str(moderator),))
 
         return Browser(actors, subreddit, self.db, self.cursor)
 
