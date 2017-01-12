@@ -41,7 +41,7 @@ CREATE TABLE subreddit_moderator(
 );
 
 CREATE TABLE removals(
-  action_id INTEGER,
+  action_id INTEGER PRIMARY KEY,
   reinstated INTEGER DEFAULT 0,
   FOREIGN KEY(action_id) REFERENCES actions(id)
 );
