@@ -69,6 +69,8 @@ class TestNotifier(BJOTest):
         with self.recorder.use_cassette('TestNotifier.test_action'):
             actor.action(post, 'TGB', action_id=1)
             self.assertEqual(11, len(post.comments))
+            self.cur.execute('SELECT * FROM notifications WHERE action_id = 1')
+            self.assertIsNotNone(self.cur.fetchone())
 
 
 class TestNuker(BJOTest):
