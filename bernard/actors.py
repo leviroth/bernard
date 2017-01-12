@@ -117,7 +117,7 @@ class Notifier(Subactor):
                           .format(thing=post.name, err=str(e)))
 
     def log_notification(self, parent, comment):
-        comment_id = int(comment.fullname.split('_')[1], 36)
+        _, comment_id = helpers.deserialize_thing_id(comment.fullname)
         self.cursor.execute('SELECT max(id) FROM actions')
         action_id = self.cursor.fetchone()[0]
         self.cursor.execute('INSERT INTO notifications (comment_id, '
