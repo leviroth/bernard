@@ -55,8 +55,7 @@ class YAMLLoader:
         actors = [self.parse_actor_config(actor_config, subreddit)
                   for actor_config in subreddit_config['rules']]
         header = subreddit_config.get('header')
-        footer = subreddit_config.get('footer')
-        actors.extend(load_subreddit_rules(subreddit, header, footer, self.db,
+        actors.extend(load_subreddit_rules(subreddit, header, self.db,
                                            self.cursor))
 
         _, subreddit_id = helpers.deserialize_thing_id(subreddit.fullname)
@@ -81,7 +80,7 @@ class YAMLLoader:
             return praw.models.Comment
 
 
-def load_subreddit_rules(subreddit, header, footer, db, cursor):
+def load_subreddit_rules(subreddit, header, db, cursor):
     api_path = '/r/{}/about/rules.json'.format(subreddit.display_name)
     subrules = [rule
                 for rule in subreddit._reddit.get(api_path)['rules']
@@ -93,8 +92,6 @@ def load_subreddit_rules(subreddit, header, footer, db, cursor):
             short_name=subrule['short_name'], desc=subrule['description'])
         if header is not None:
             note_text = header + "\n\n" + note_text
-        if footer is not None:
-            note_text = note_text + "\n\n" + footer
 
         command = build_regex(["RULE {n}".format(n=i), "{n}".format(n=i),
                                subrule['short_name']])

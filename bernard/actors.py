@@ -101,9 +101,25 @@ class Notifier(Subactor):
         super().__init__(*args, **kwargs)
         self.text = text
 
+    def _footer(self, url):
+        base_url = self.subreddit._reddit.config.reddit_url
+        sub_name = self.subreddit.display_name
+        modmail_link = (
+            "{base_url}/message/compose?to=%2Fr%2F{sub_name}"
+            "&message=Post%20in%20question:%20{url}"
+        ).format(base_url=base_url,
+                 sub_name=sub_name,
+                 url=urllib.parse.quote(url))
+
+        return (
+            "\n\n-----\n\nI am a bot. Please do not reply to this message, as"
+            "it will go unread. Instead, [contact the moderators]({}) with "
+            "questions or comments."
+        ).format(url)
+
+
     def action(self, post, mod, action_id):
-        url = urllib.parse.quote(post.permalink.encode('utf-8'))
-        text = self.text.replace('{url}', url)
+        text = self.text + self._footer(post.permalink)
         try:
             result = post.reply(text)
         except Exception as e:
