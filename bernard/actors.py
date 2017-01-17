@@ -115,11 +115,16 @@ class Notifier(Subactor):
             "\n\n-----\n\nI am a bot. Please do not reply to this message, as"
             "it will go unread. Instead, [contact the moderators]({}) with "
             "questions or comments."
-        ).format(url)
+        ).format(modmail_link)
 
 
     def action(self, post, mod, action_id):
-        text = self.text + self._footer(post.permalink)
+        permalink = post.permalink
+        # praw.models.Comment.permalink is a method
+        if isinstance(post, praw.models.Comment):
+            permalink = permalink()
+
+        text = self.text + self._footer(permalink)
         try:
             result = post.reply(text)
         except Exception as e:
