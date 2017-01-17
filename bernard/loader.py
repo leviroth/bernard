@@ -108,7 +108,7 @@ def load_subreddit_rules(subreddit, header, db, cursor):
                                    db=db, cursor=cursor)]
         our_rules.append(
             actors.Actor(command, [praw.models.Submission], True, actions,
-                         'removed', 'Rule {}'.format(i), db, cursor, subreddit)
+                         'Removed', 'Rule {}'.format(i), db, cursor, subreddit)
         )
 
     return our_rules
