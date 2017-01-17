@@ -57,6 +57,8 @@ class YAMLLoader:
         header = subreddit_config.get('header')
         actors.extend(load_subreddit_rules(subreddit, header, self.db,
                                            self.cursor))
+        if subreddit_config.get('nuke_rules') is not None:
+            actors.extend(load_comment_rules(subreddit, self.db, self.cursor))
 
         _, subreddit_id = helpers.deserialize_thing_id(subreddit.fullname)
         cursor.execute('INSERT OR IGNORE INTO subreddits (id, display_name) '
@@ -105,6 +107,30 @@ def load_subreddit_rules(subreddit, header, db, cursor):
     return our_rules
 
 
+def load_comment_rules(subreddit, db, cursor):
+    header = "Please bear in mind our commenting rules:"
+    api_path = '/r/{}/about/rules.json'.format(subreddit.display_name)
+    comment_rules = [rule
+                    for rule in subreddit._reddit.get(api_path)['rules']
+                    if rule['kind'] == 'comment']
+    our_rules = []
+
+    for i, rule in enumerate(comment_rules, 1):
+        note_text = ">**{short_name}**\n\n>{desc}".format(
+            short_name=rule['short_name'], desc=rule['description'])
+        if header is not None:
+            note_text = header + "\n\n" + note_text
+
+        command = build_regex(["nuke {n}".format(n=i), "n {n}".format(n=i)])
+        actions = [actors.Nuker(subreddit=subreddit, db=db, cursor=cursor),
+                   actors.Notifier(text=note_text, subreddit=subreddit,
+                                   db=db, cursor=cursor)]
+        our_rules.append(
+            actors.Actor(command, [praw.models.Comment], True, actions,
+                         'Nuked', 'Comment Rule {}'.format(i), db, cursor, subreddit)
+        )
+
+    return our_rules
 
 
 def main():
