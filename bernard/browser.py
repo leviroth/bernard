@@ -1,3 +1,6 @@
+import logging
+
+
 class Browser:
     def __init__(self, actors, subreddit, db, cursor):
         self.actors = actors
