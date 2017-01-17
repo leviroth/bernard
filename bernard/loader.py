@@ -34,7 +34,7 @@ class YAMLLoader:
         registry = actors.registry
         return [registry[subactor_config['action']](
             db=self.db, cursor=self.cursor, subreddit=subreddit,
-            **subactor_config['params'])
+            **subactor_config.get('params', {}))
                 for subactor_config in subactor_configs]
 
     def parse_actor_config(self, actor_config, subreddit):
