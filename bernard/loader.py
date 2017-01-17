@@ -61,12 +61,19 @@ class YAMLLoader:
             actors.extend(load_comment_rules(subreddit, self.db, self.cursor))
 
         _, subreddit_id = helpers.deserialize_thing_id(subreddit.fullname)
-        cursor.execute('INSERT OR IGNORE INTO subreddits (id, display_name) '
-                       'VALUES(?,?)', (subreddit_id, str(subreddit)))
+        self.cursor.execute(
+            'INSERT OR IGNORE INTO subreddits (id, display_name) VALUES(?,?)',
+            (subreddit_id, str(subreddit)))
 
         for moderator in subreddit.moderator:
-            cursor.execute('INSERT OR IGNORE INTO users (username) '
-                           'VALUES(?)', (str(moderator),))
+            self.cursor.execute('INSERT OR IGNORE INTO users (username) '
+                                'VALUES(?)', (str(moderator),))
+            self.cursor.execute('SELECT id FROM users WHERE username = ?',
+                                (str(moderator),))
+            moderator_id = self.cursor.fetchone()[0]
+            self.cursor.execute('INSERT OR IGNORE INTO subreddit_moderator '
+                                '(subreddit_id, moderator_id) VALUES(?,?)',
+                                (subreddit_id, moderator_id))
 
         return browser.Browser(actors, subreddit, self.db, self.cursor)
 
