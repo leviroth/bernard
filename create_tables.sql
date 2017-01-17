@@ -36,6 +36,7 @@ CREATE TABLE subreddits(
 CREATE TABLE subreddit_moderator(
   subreddit_id INTEGER,
   moderator_id INTEGER,
+  PRIMARY KEY(subreddit_id, moderator_id),
   FOREIGN KEY(subreddit_id) REFERENCES subreddits(id),
   FOREIGN KEY(moderator_id) REFERENCES users(id)
 );
