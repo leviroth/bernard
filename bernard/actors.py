@@ -114,7 +114,7 @@ class Notifier(Subactor):
                  url=urllib.parse.quote(url))
 
         return (
-            "\n\n-----\n\nI am a bot. Please do not reply to this message, as"
+            "\n\n-----\n\nI am a bot. Please do not reply to this message, as "
             "it will go unread. Instead, [contact the moderators]({}) with "
             "questions or comments."
         ).format(modmail_link)
