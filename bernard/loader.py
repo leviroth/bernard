@@ -60,20 +60,8 @@ class YAMLLoader:
         if subreddit_config.get('nuke_rules') is not None:
             actors.extend(load_comment_rules(subreddit, self.db, self.cursor))
 
-        _, subreddit_id = helpers.deserialize_thing_id(subreddit.fullname)
-        self.cursor.execute(
-            'INSERT OR IGNORE INTO subreddits (id, display_name) VALUES(?,?)',
-            (subreddit_id, str(subreddit)))
-
-        for moderator in subreddit.moderator:
-            self.cursor.execute('INSERT OR IGNORE INTO users (username) '
-                                'VALUES(?)', (str(moderator),))
-            self.cursor.execute('SELECT id FROM users WHERE username = ?',
-                                (str(moderator),))
-            moderator_id = self.cursor.fetchone()[0]
-            self.cursor.execute('INSERT OR IGNORE INTO subreddit_moderator '
-                                '(subreddit_id, moderator_id) VALUES(?,?)',
-                                (subreddit_id, moderator_id))
+        helpers.update_sr_tables(self.cursor, subreddit)
+        self.db.commit()
 
         return browser.Browser(actors, subreddit, self.db, self.cursor)
 
