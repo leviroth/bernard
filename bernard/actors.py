@@ -80,6 +80,8 @@ class Actor:
              moderator_id, subreddit)
         )
 
+        print(moderator, action_summary, action_details, target, self.subreddit)
+
         return self.cursor.lastrowid
 
 
