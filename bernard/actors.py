@@ -24,6 +24,14 @@ class Actor:
 
     def parse(self, command, mod, post):
         if self.match(command, post):
+            target_type, target_id = helpers.deserialize_thing_id(
+                post.fullname)
+            self.cursor.execute('SELECT 1 FROM actions '
+                                'WHERE target_type = ? AND target_id = ?',
+                                (target_type, target_id))
+            if self.cursor.fetchone() is not None:
+                return
+
             action_id = self.log_action(post, mod)
 
             for subactor in self.subactors:
