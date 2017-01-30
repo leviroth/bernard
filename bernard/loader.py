@@ -56,10 +56,14 @@ class YAMLLoader:
         actors = [self.parse_actor_config(actor_config, subreddit)
                   for actor_config in subreddit_config['rules']]
         header = subreddit_config.get('header')
-        actors.extend(load_subreddit_rules(subreddit, header, self.db,
-                                           self.cursor))
+        sub_rules = get_rules(subreddit)
+
+        actors.extend(
+            load_subreddit_rules(subreddit, sub_rules, header, self.db,
+                                 self.cursor))
         if subreddit_config.get('nuke_rules') is not None:
-            actors.extend(load_comment_rules(subreddit, self.db, self.cursor))
+            actors.extend(
+                load_comment_rules(subreddit, sub_rules, self.db, self.cursor))
 
         helpers.update_sr_tables(self.cursor, subreddit)
         self.db.commit()
@@ -72,22 +76,26 @@ class YAMLLoader:
         if obj == "comment":
             return praw.models.Comment
 
-
-def load_subreddit_rules(subreddit, header, db, cursor):
+def get_rules(subreddit):
+    "Get subreddit's rules."
     api_path = '/r/{}/about/rules.json'.format(subreddit.display_name)
-    subrules = [rule
-                for rule in subreddit._reddit.get(api_path)['rules']
-                if rule['kind'] == 'link' or rule['kind'] == 'all']
+    return list(subreddit._reddit.get(api_path)['rules'])
+
+def load_subreddit_rules(subreddit, rules, header, db, cursor):
+    "Create a remover/notifier for each post rule."
+    post_rules = [rule for rule in rules
+                  if rule['kind'] == 'link' or rule['kind'] == 'all']
     our_rules = []
 
-    for i, subrule in enumerate(subrules, 1):
+    for i, rule in enumerate(post_rules, 1):
         note_text = "**{short_name}**\n\n{desc}".format(
-            short_name=subrule['short_name'], desc=subrule['description'])
+            short_name=rule['short_name'], desc=rule['description'])
         if header is not None:
             note_text = header + "\n\n" + note_text
 
-        command = build_regex(["RULE {n}".format(n=i), "{n}".format(n=i),
-                               subrule['short_name']])
+        command = build_regex(["RULE {n}".format(n=i),
+                               "{n}".format(n=i),
+                               rule['short_name']])
         actions = [actors.Notifier(text=note_text, subreddit=subreddit,
                                    db=db, cursor=cursor)]
         our_rules.append(
@@ -98,12 +106,12 @@ def load_subreddit_rules(subreddit, header, db, cursor):
     return our_rules
 
 
-def load_comment_rules(subreddit, db, cursor):
+def load_comment_rules(subreddit, rules, db, cursor):
+    "Create a nuker/warner for each comment rule."
     header = "Please bear in mind our commenting rules:"
     api_path = '/r/{}/about/rules.json'.format(subreddit.display_name)
-    comment_rules = [rule
-                    for rule in subreddit._reddit.get(api_path)['rules']
-                    if rule['kind'] == 'comment']
+    comment_rules = [rule for rule in rules
+                     if rule['kind'] == 'comment']
     our_rules = []
 
     for i, rule in enumerate(comment_rules, 1):
