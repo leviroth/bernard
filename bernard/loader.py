@@ -10,10 +10,11 @@ import time
 import yaml
 
 
-def build_regex(triggers):
-    return re.compile("^(" + "|".join(re.escape(str(trigger))
-                                      for trigger in triggers)
-                      + ")$",
+def build_regex(commands):
+    "Turn commands iterable into a case-insensitive, 'inclusive-or' regex."
+    escaped_commands = (re.escape(str(command)) for command in commands)
+    joined_commands = "|".join(escaped_commands)
+    return re.compile("^(" + joined_commands + ")$",
                       re.IGNORECASE)
 
 
