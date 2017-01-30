@@ -66,11 +66,6 @@ class YAMLLoader:
 
         return browser.Browser(actors, subreddit, self.db, self.cursor)
 
-    # TODO: please move or reorganize - should these registries be in one
-    # place?
-    #
-    # We can create mapping functions for each sort of thing that is read out
-    # of YAML - and ideally JSON as well
     def _object_map(self, obj):
         if obj == "post":
             return praw.models.Submission
@@ -127,18 +122,3 @@ def load_comment_rules(subreddit, db, cursor):
         )
 
     return our_rules
-
-
-def main():
-    r = praw.Reddit('bjo test')
-    r_philosophy = r.get_subreddit('philosophy')
-    db = sqlite3.connect('new.db')
-    cursor = db.cursor()
-    loader = SubredditRuleLoader(db, cursor, r_philosophy)
-    rules = loader.load()
-    return rules
-
-if __name__ == '__main__':
-    # l = YAMLLoader(sqlite3.connect(':memory:'), 2)
-    # a = l.load('config.yaml')
-    main()
