@@ -18,6 +18,10 @@ def build_regex(commands):
                       re.IGNORECASE)
 
 
+_praw_model_map = {"post":    praw.models.Submission,
+                   "comment": praw.models.Comment}
+
+
 class YAMLLoader:
     def __init__(self, db, cursor, reddit):
         self.db = db
@@ -41,7 +45,7 @@ class YAMLLoader:
     def parse_actor_config(self, actor_config, subreddit):
         return actors.Actor(
             build_regex(actor_config['trigger']),
-            [self._object_map(x) for x in actor_config['types']],
+            [_praw_model_map[x] for x in actor_config['types']],
             actor_config['remove'],
             self.parse_subactor_config(actor_config['actions'], subreddit),
             actor_config['name'],
@@ -69,12 +73,6 @@ class YAMLLoader:
         self.db.commit()
 
         return browser.Browser(actors, subreddit, self.db, self.cursor)
-
-    def _object_map(self, obj):
-        if obj == "post":
-            return praw.models.Submission
-        if obj == "comment":
-            return praw.models.Comment
 
 def get_rules(subreddit):
     "Get subreddit's rules."
