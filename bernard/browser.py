@@ -16,7 +16,7 @@ class Browser:
         try:
             for post in self.subreddit.mod.reports(limit=None):
                 for mod_report in post.mod_reports:
-                    yield (mod_report[0], mod_report[1], post)
+                    yield (str(mod_report[0]), mod_report[1], post)
         except Exception as e:
             logging.error("Error fetching reports: {err}".format(err=e))
 
