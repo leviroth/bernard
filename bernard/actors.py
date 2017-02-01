@@ -235,11 +235,3 @@ class Nuker(Subactor):
                 except Exception as e:
                     logging.error("Failed to remove comment {thing}: {err}"
                                   .format(thing=comment.name, err=str(e)))
-
-
-registry = {
-    'notify': Notifier,
-    'wikiwatch': WikiWatcher,
-    'ban': Banner,
-    'nuke': Nuker
-}

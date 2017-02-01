@@ -18,9 +18,17 @@ def build_regex(commands):
                       re.IGNORECASE)
 
 
-_praw_model_map = {"post":    praw.models.Submission,
-                   "comment": praw.models.Comment}
+_target_map = {
+    "comment": praw.models.Comment,
+    "post":    praw.models.Submission,
+}
 
+_subactor_registry = {
+    'ban':       actors.Banner,
+    'notify':    actors.Notifier,
+    'nuke':      actors.Nuker,
+    'wikiwatch': actors.WikiWatcher
+}
 
 class YAMLLoader:
     def __init__(self, db, cursor, reddit):
@@ -35,19 +43,28 @@ class YAMLLoader:
         return [self.parse_subreddit_config(subreddit_config)
                 for subreddit_config in config['subreddits']]
 
-    def parse_subactor_config(self, subactor_configs, subreddit):
-        registry = actors.registry
+    def parse_subactor_config(self, subactor_config, subreddit):
+        subactor_class = _subactor_registry[subactor_config['action']]
+        return subactor_class(db=self.db, cursor=self.cursor,
+                              subreddit=subreddit,
+                              **subactor_config.get('params', {}))
         return [registry[subactor_config['action']](
             db=self.db, cursor=self.cursor, subreddit=subreddit,
             **subactor_config.get('params', {}))
                 for subactor_config in subactor_configs]
 
     def parse_actor_config(self, actor_config, subreddit):
+        "Return an Action corresponding to actor_config."
+        command = build_regex(actor_config['trigger'])
+        target_types = [_target_map[x] for x in actor_config['types']]
+        subactors = [self.parse_subactor_config(subactor_config, subreddit)
+                     for subactor_config in actor_config['actions']]
+
         return actors.Actor(
-            build_regex(actor_config['trigger']),
-            [_praw_model_map[x] for x in actor_config['types']],
+            command,
+            target_types,
             actor_config['remove'],
-            self.parse_subactor_config(actor_config['actions'], subreddit),
+            subactors,
             actor_config['name'],
             actor_config.get('details'),
             self.db,
