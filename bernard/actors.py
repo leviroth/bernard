@@ -113,12 +113,12 @@ class Notifier(Subactor):
         self.text = text
 
     def _footer(self, url):
-        base_url = self.subreddit._reddit.config.reddit_url
+        base_reddit_url = self.subreddit._reddit.config.reddit_url
         sub_name = self.subreddit.display_name
         modmail_link = (
             "{base_url}/message/compose?to=%2Fr%2F{sub_name}"
             "&message=Post%20in%20question:%20{url}"
-        ).format(base_url=base_url,
+        ).format(base_url=base_reddit_url,
                  sub_name=sub_name,
                  url=urllib.parse.quote(url))
 
