@@ -14,7 +14,7 @@ class Browser:
         for actor in self.actors:
             actor.parse(command, mod, post)
 
-    def scan_reports(self):
+    def reports(self):
         """Generator for mod reports in a subreddit.
 
         Yields tuple of report, mod name, and target.
@@ -28,8 +28,8 @@ class Browser:
             logging.error("Error fetching reports: {err}".format(err=e))
 
     def run(self):
-        for command, mod, post in self.scan_reports():
         "Fetch reports and dispatch to actors."
+        for command, mod, post in self.reports():
             self.check_command(command, mod, post)
         for actor in self.actors:
             actor.after()
