@@ -1,12 +1,8 @@
 import actors
 import browser
 import helpers
-import json
-import logging
 import praw
 import re
-import sqlite3
-import time
 import yaml
 
 
