@@ -2,6 +2,7 @@ import logging
 
 
 class Browser:
+    "A class to fetch reports and dispatch to actors."
     def __init__(self, actors, subreddit, db, cursor):
         self.actors = actors
         self.subreddit = subreddit
@@ -9,10 +10,16 @@ class Browser:
         self.cursor = cursor
 
     def check_command(self, command, mod, post):
+        "Check if any actor matches this report."
         for actor in self.actors:
             actor.parse(command, mod, post)
 
     def scan_reports(self):
+        """Generator for mod reports in a subreddit.
+
+        Yields tuple of report, mod name, and target.
+
+        """
         try:
             for post in self.subreddit.mod.reports(limit=None):
                 for mod_report in post.mod_reports:
@@ -22,6 +29,7 @@ class Browser:
 
     def run(self):
         for command, mod, post in self.scan_reports():
+        "Fetch reports and dispatch to actors."
             self.check_command(command, mod, post)
         for actor in self.actors:
             actor.after()
