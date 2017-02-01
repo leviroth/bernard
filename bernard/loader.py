@@ -48,10 +48,6 @@ class YAMLLoader:
         return subactor_class(db=self.db, cursor=self.cursor,
                               subreddit=subreddit,
                               **subactor_config.get('params', {}))
-        return [registry[subactor_config['action']](
-            db=self.db, cursor=self.cursor, subreddit=subreddit,
-            **subactor_config.get('params', {}))
-                for subactor_config in subactor_configs]
 
     def parse_actor_config(self, actor_config, subreddit):
         "Return an Action corresponding to actor_config."
