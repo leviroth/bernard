@@ -73,15 +73,22 @@ class YAMLLoader:
         )
 
     def parse_subreddit_config(self, subreddit_config):
+        """Return a Browser with actors draw from the configuration and the subreddit
+        rules.
+
+        """
         subreddit = self.reddit.subreddit(subreddit_config['name'])
         actors = [self.parse_actor_config(actor_config, subreddit)
                   for actor_config in subreddit_config['rules']]
         header = subreddit_config.get('header')
         sub_rules = get_rules(subreddit)
 
+        # Add remover/notifier for subreddit rules and, if desired,
+        # nuker/notifier for comment rules.
         actors.extend(
             load_subreddit_rules(subreddit, sub_rules, header, self.db,
                                  self.cursor))
+
         if subreddit_config.get('nuke_rules') is not None:
             actors.extend(
                 load_comment_rules(subreddit, sub_rules, self.db, self.cursor))
