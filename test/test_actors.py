@@ -27,12 +27,11 @@ class TestActor(BJOTest):
         with self.recorder.use_cassette('TestActor.test_match__correct_type'):
             self.assertTrue(self.actor.match('foo', post))
 
-
     def test_match__incorrect_type(self):
         post = self.r.comment(id='dbnq46r')
-        with self.recorder.use_cassette('TestActor.test_match__incorrect_type'):
+        with self.recorder.use_cassette(
+                'TestActor.test_match__incorrect_type'):
             self.assertFalse(self.actor.match('foo', post))
-
 
     @patch('time.sleep', return_value=None)
     def test_parse(self, _):
@@ -48,7 +47,9 @@ class TestActor(BJOTest):
                              (post_id,))
             summary, action_id = self.cur.fetchone()
             self.assertEqual('Remove', summary)
-            self.cur.execute('SELECT * FROM removals WHERE action_id = ?', (action_id,))
+            self.cur.execute('SELECT * FROM removals WHERE action_id = ?',
+                             (action_id,))
+
 
 class TestBanner(BJOTest):
     @patch('time.sleep', return_value=None)

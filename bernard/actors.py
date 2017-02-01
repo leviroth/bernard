@@ -88,7 +88,8 @@ class Actor:
              moderator_id, subreddit)
         )
 
-        print(moderator, action_summary, action_details, target, self.subreddit)
+        print(moderator, action_summary, action_details, target,
+              self.subreddit)
 
         return self.cursor.lastrowid
 
@@ -126,7 +127,6 @@ class Notifier(Subactor):
             "it will go unread. Instead, [contact the moderators]({}) with "
             "questions or comments."
         ).format(modmail_link)
-
 
     def action(self, post, mod, action_id):
         permalink = post.permalink
