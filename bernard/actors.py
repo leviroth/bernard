@@ -6,6 +6,12 @@ from xml.sax.saxutils import unescape
 
 
 class Actor:
+    """A class for managing rules.
+
+    Responsible for matching input with commands, performing the requested
+    actions, and logging to database.
+
+    """
     def __init__(self, trigger, targets, remove, subactors, action_name,
                  action_details, db, cursor, subreddit):
         self.trigger = trigger
@@ -19,11 +25,14 @@ class Actor:
         self.subreddit = subreddit
 
     def match(self, command, post):
+        "Return true if command matches and post is the right type of thing."
         return self.trigger.match(command) \
             and any(isinstance(post, target) for target in self.targets)
 
     def parse(self, command, mod, post):
+        "Execute requested actions if report matches command."
         if self.match(command, post):
+            # Only act once on a given thing
             target_type, target_id = helpers.deserialize_thing_id(
                 post.fullname)
             self.cursor.execute('SELECT 1 FROM actions '
@@ -45,10 +54,12 @@ class Actor:
             self.db.commit()
 
     def after(self):
+        "Perform end-of-loop actions for each subactor."
         for subactor in self.subactors:
             subactor.after()
 
     def remove_thing(self, thing, action_id):
+        "Perform and log removal. Lock if thing is a submission."
         try:
             thing.mod.remove()
         except Exception as e:
@@ -66,9 +77,12 @@ class Actor:
                             (action_id,))
 
     def log_action(self, target, moderator):
+        "Log action in database and console. Return database row id."
         target_type, target_id = helpers.deserialize_thing_id(target.fullname)
         action_summary = self.action_name
         action_details = self.action_details
+
+        # Get (or create) database entries for author and moderator
         self.cursor.execute('INSERT OR IGNORE INTO users (username) '
                             'VALUES(?)', (target.author.name,))
         self.cursor.execute('SELECT id FROM users WHERE username = ?',
@@ -79,7 +93,9 @@ class Actor:
         self.cursor.execute('SELECT id FROM users WHERE username = ?',
                             (moderator,))
         moderator_id = self.cursor.fetchone()[0]
+
         _, subreddit = helpers.deserialize_thing_id(self.subreddit.fullname)
+
         self.cursor.execute(
             'INSERT INTO actions (target_type, target_id, action_summary, '
             'action_details, author, moderator, subreddit) '
@@ -95,24 +111,29 @@ class Actor:
 
 
 class Subactor:
+    "Base class for specific actions the bot can perform."
     def __init__(self, db, cursor, subreddit):
         self.db = db
         self.cursor = cursor
         self.subreddit = subreddit
 
     def action(self, post, mod, action_id):
+        "Called immediately when a command is matched."
         pass
 
     def after(self):
+        "Called after checking all reports to enable batch actions."
         pass
 
 
 class Notifier(Subactor):
+    "A class for replying to targets."
     def __init__(self, text, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.text = text
 
     def _footer(self, url):
+        "Return footer identifying bot as such and directing users to modmail."
         base_reddit_url = self.subreddit._reddit.config.reddit_url
         sub_name = self.subreddit.display_name
         modmail_link = (
@@ -129,12 +150,13 @@ class Notifier(Subactor):
         ).format(modmail_link)
 
     def action(self, post, mod, action_id):
+        "Add, distinguish, and (if top-level) sticky reply to target."
         permalink = post.permalink
         # praw.models.Comment.permalink is a method
         if isinstance(post, praw.models.Comment):
             permalink = permalink()
-
         text = self.text + self._footer(permalink)
+
         try:
             result = post.reply(text)
         except Exception as e:
@@ -143,8 +165,6 @@ class Notifier(Subactor):
             return
         else:
             self.log_notification(post, result, action_id)
-            # Perhaps we should log the notification in the controller, not in
-            # this class
 
         try:
             result.mod.distinguish(sticky=isinstance(post,
@@ -154,22 +174,28 @@ class Notifier(Subactor):
                           .format(thing=post.name, err=str(e)))
 
     def log_notification(self, parent, comment, action_id):
+        "Log notification, associating comment id with action."
         _, comment_id = helpers.deserialize_thing_id(comment.fullname)
         self.cursor.execute('INSERT INTO notifications (comment_id, '
                             'action_id) VALUES(?,?)', (comment_id, action_id))
 
 
 class WikiWatcher(Subactor):
+    "A class for adding authors to AutoMod configuration lists."
     def __init__(self, placeholder, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.placeholder = placeholder
         self.to_add = []
 
     def action(self, post, mod, action_id):
+        """Add author to local list of users. Actual wiki update performed in
+        WikiWatcher.after.
+
+        """
         self.to_add.append(str(post.author))
 
     def after(self):
-        """Add accumulated list of users to AutoMod config"""
+        "Add accumulated list of users to AutoMod config."
         if not self.to_add:
             return
 
@@ -200,6 +226,7 @@ class WikiWatcher(Subactor):
 
 
 class Banner(Subactor):
+    "A class to ban authors."
     def __init__(self, message, reason, duration=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.message = message
@@ -207,6 +234,7 @@ class Banner(Subactor):
         self.duration = duration
 
     def action(self, post, mod, action_id):
+        "Ban author of post."
         try:
             self.subreddit.banned.add(
                 post.author, duration=self.duration, ban_message=self.message,
@@ -218,7 +246,13 @@ class Banner(Subactor):
 
 
 class Nuker(Subactor):
+    """A class to recursiely remove replies.
+
+    Does not affect the target itself.
+
+    """
     def action(self, post, mod, action_id):
+        "Remove the replies."
         try:
             post.refresh()
             post.replies.replace_more()
