@@ -28,3 +28,8 @@ class TestBrowser(BJOTest):
         with self.recorder.use_cassette('TestBrowser.test_run'):
             self.browser.run()
             self.assertTrue(self.subactor.action.called)
+
+    def test_empty_string_report(self):
+        with self.recorder.use_cassette(
+                'TestBrowser.test_empty_string_report'):
+            self.browser.run()
