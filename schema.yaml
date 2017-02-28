@@ -1,0 +1,54 @@
+type: map
+mapping:
+  "subreddits":
+    type: seq
+    sequence:
+      -
+        type: map
+        mapping:
+          "name":
+            type: str
+            required: yes
+          "header":
+            type: str
+            required: yes
+          "nuke_rules":
+            type: bool
+            required: no
+          "rules":
+            type: seq
+            sequence:
+              -
+                type: map
+                mapping:
+                  "name":
+                    type: str
+                    required: yes
+                  "details":
+                    type: str
+                    required: no
+                  "trigger":
+                    type: seq
+                    sequence:
+                      - type: str
+                  "remove":
+                    type: bool
+                    required: yes
+                  "types":
+                    type: seq
+                    sequence:
+                      - type: str
+                        pattern: "(post|comment)"
+                  "actions":
+                    type: seq
+                    sequence:
+                      -
+                        type: map
+                        mapping:
+                          "action":
+                            type: str
+                            required: yes
+                          "params":
+                            type: map
+                            allowempty: true
+
