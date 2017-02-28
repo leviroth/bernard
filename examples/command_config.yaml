@@ -1,0 +1,50 @@
+subreddits:
+- name: thirdrealm
+  header: >
+    Thank you for your post to /r/ThirdRealm. Unfortunately, a moderator has
+    removed it according to the following rule:
+  nuke_rules: true
+  rules:
+  - name: "Removed"
+    details: "Question"
+    trigger: [question, q]
+    types: [post]
+    remove: true
+    actions:
+    - action: notify
+      params:
+        text: >
+          Questions are best directed to /r/askphilosophy, 
+          which specializes in answers to philosophical questions!
+    - action: usernote
+      params:
+        text: "Removed (question)"
+        level: "abusewarn"
+  - name: "Banned"
+    details: "3 day warning for psychologism"
+    trigger: [p, psych, psychologism]
+    types: [post, comment]
+    remove: true
+    actions:
+      - action: ban
+        params:
+          message: |
+            Psychologism is looked upon with suspicion in /r/ThirdRealm. Take a
+            few days to reconsider your ontological commitments.
+          reason: "psychologism"
+          duration: 3
+  - name: "Watched"
+    details: "Suspected of being a spy"
+    trigger: [watch]
+    types: [post, comment]
+    remove: true
+    actions:
+      - action: wikiwatch
+        params:
+          placeholder: 'do!not!remove!watchlist'
+  - name: "Nuked"
+    trigger: [nuke, n]
+    types: [comment]
+    remove: true
+    actions:
+      - action: nuke
