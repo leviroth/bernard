@@ -15,6 +15,7 @@ _subactor_registry = {
     'ban':       actors.Banner,
     'notify':    actors.Notifier,
     'nuke':      actors.Nuker,
+    'usernote':  actors.ToolboxNoteAdder,
     'wikiwatch': actors.WikiWatcher
 }
 

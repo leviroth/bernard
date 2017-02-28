@@ -1,7 +1,12 @@
+import base64
 import helpers
+import json
 import logging
 import praw
+import prawcore
+import time
 import urllib.parse
+import zlib
 from xml.sax.saxutils import unescape
 
 
@@ -269,3 +274,116 @@ class Nuker(Subactor):
                 except Exception as e:
                     logging.error("Failed to remove comment {thing}: {err}"
                                   .format(thing=comment.name, err=str(e)))
+
+
+class ToolboxNoteAdder(Subactor):
+    """A class to add Moderator Toolbox notes to the wiki."""
+    EXPECTED_VERSION = 6
+
+    def __init__(self, text, level, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.text = text
+        self.level = level
+        self.to_add = []
+
+    def action(self, post, mod, action_id):
+        """Enqueue a note to add after pass through the reports."""
+        author = str(post.author)
+        now = int(time.time())
+        link = self.toolbox_link_string(post)
+        self.to_add.append((author, link, now, mod))
+
+    def after(self):
+        """Add queued reports to the wiki."""
+        if not self.to_add:
+            return
+
+        wiki_page = self.subreddit.wiki['usernotes']
+        try:
+            usernotes_dict = self.fetch_notes_dict(wiki_page)
+        except prawcore.exceptions.RequestException as e:
+            logging.error("Failed to load toolbox usernotes: {err}"
+                          .format(err=e))
+            return
+
+        if usernotes_dict['ver'] != self.EXPECTED_VERSION:
+            return
+
+        # Mods and warning levels are stored in these lists, but referenced in
+        # notes via their indices. Modifications to these lists are persisted
+        # on the wiki.
+        mod_list = usernotes_dict['constants']['users']
+        mod_indices = {a: b for b, a in enumerate(mod_list)}
+        warning_list = usernotes_dict['constants']['warnings']
+        warning_indices = {a: b for b, a in enumerate(warning_list)}
+        if self.level not in warning_indices:
+            warning_indices[self.level] = len(warning_list)
+            warning_list.append(self.level)
+
+        data_dict = self.decompress_blob(usernotes_dict['blob'])
+
+        for author, link, timestamp, mod in self.to_add:
+            if mod not in mod_indices:
+                mod_indices[mod] = len(mod_list)
+                mod_list.append(mod)
+
+            note = self.build_note(timestamp, mod_indices[mod], link,
+                                   warning_indices[self.level])
+
+            if author not in data_dict:
+                data_dict[author] = {"ns": []}
+
+            data_dict[author]["ns"].insert(0, note)
+
+        usernotes_dict['blob'] = self.compress_blob(data_dict)
+        serialized_page = json.dumps(usernotes_dict)
+
+        try:
+            wiki_page.edit(serialized_page)
+        except prawcore.exceptions.RequestException as e:
+            logging.error("Failed to update automod config {err}"
+                          .format(err=e))
+            return
+        else:
+            self.to_add = []
+
+    def build_note(self, timestamp, mod_index, link, warning_index):
+        """Return a dict of a mod note, ready for insertion in the wiki."""
+        return {
+            "n": self.text,
+            "t": timestamp,
+            "m": mod_index,
+            "l": link,
+            "w": warning_index
+        }
+
+    def compress_blob(self, data_dict):
+        """Return a blob from usernotes dict."""
+        serialized_data = json.dumps(data_dict)
+        compressed = zlib.compress(serialized_data.encode())
+        base64_encoded = base64.b64encode(compressed)
+        return base64_encoded.decode()
+
+    def decompress_blob(self, blob):
+        """Return dict from compressed usernote blob."""
+        decoded = base64.b64decode(blob)
+        unzipped = zlib.decompress(decoded)
+        return json.loads(unzipped.decode())
+
+    def fetch_notes_dict(self, wiki_page):
+        """Fetch usernotes dict from wiki.
+
+        Uses network connection; may therefore raise
+        prawcore.exceptions.RequestException.
+
+        """
+        usernotes_json = wiki_page.content_md
+        return json.loads(usernotes_json)
+
+    def toolbox_link_string(self, thing):
+        """Return thing's URL compressed in Toolbox's format."""
+        if isinstance(thing, praw.models.Submission):
+            return 'l,{submission_id}'.format(submission_id=thing.id)
+        elif isinstance(thing, praw.models.Comment):
+            return 'l,{submission_id},{comment_id}'.format(
+                submission_id=thing.submission.id, comment_id=thing.id)
