@@ -1,5 +1,4 @@
 import base64
-import helpers
 import json
 import logging
 import praw
@@ -8,6 +7,8 @@ import time
 import urllib.parse
 import zlib
 from xml.sax.saxutils import unescape
+
+from . import helpers
 
 
 class Actor:

@@ -1,10 +1,8 @@
-import actors
-import browser
-import helpers
 import praw
 import re
 import yaml
 
+from . import actors, browser, helpers
 
 _target_map = {
     "comment": praw.models.Comment,
