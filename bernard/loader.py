@@ -49,8 +49,20 @@ def load_subreddit_rules(subreddit, rules, header, db, cursor):
         command = build_regex(["RULE {n}".format(n=i),
                                "{n}".format(n=i),
                                rule['short_name']])
-        actions = [actors.Notifier(text=note_text, subreddit=subreddit,
-                                   db=db, cursor=cursor)]
+        actions = [
+            actors.Notifier(
+                text=note_text,
+                subreddit=subreddit,
+                db=db,
+                cursor=cursor),
+            actors.ToolboxNoteAdder(
+                text="Post removed (Rule {})".format(i),
+                level="abusewarn",
+                subreddit=subreddit,
+                db=db,
+                cursor=cursor)
+        ]
+
         our_rules.append(
             actors.Actor(
                 command,
@@ -82,9 +94,24 @@ def load_comment_rules(subreddit, rules, db, cursor):
             note_text = header + "\n\n" + note_text
 
         command = build_regex(["nuke {n}".format(n=i), "n {n}".format(n=i)])
-        actions = [actors.Nuker(subreddit=subreddit, db=db, cursor=cursor),
-                   actors.Notifier(text=note_text, subreddit=subreddit,
-                                   db=db, cursor=cursor)]
+        actions = [
+            actors.Nuker(
+                subreddit=subreddit,
+                db=db,
+                cursor=cursor),
+            actors.Notifier(
+                text=note_text,
+                subreddit=subreddit,
+                db=db,
+                cursor=cursor),
+            actors.ToolboxNoteAdder(
+                text="Post removed (Rule {})".format(i),
+                level="abusewarn",
+                subreddit=subreddit,
+                db=db,
+                cursor=cursor)
+        ]
+
         our_rules.append(
             actors.Actor(
                 command,
