@@ -144,7 +144,8 @@ class YAMLLoader:
         "Return an Action corresponding to actor_config."
         command = build_regex(actor_config['trigger'])
         target_types = [_target_map[x] for x in actor_config['types']]
-        subactors = [self.parse_subactor_config(subactor_config, subreddit)
+        subactors = [self.parse_subactor_config(subactor_config, subreddit,
+                                                target_types)
                      for subactor_config in actor_config['actions']]
 
         return actors.Actor(
@@ -159,8 +160,12 @@ class YAMLLoader:
             subreddit
         )
 
-    def parse_subactor_config(self, subactor_config, subreddit):
+    def parse_subactor_config(self, subactor_config, subreddit, target_types):
         subactor_class = _subactor_registry[subactor_config['action']]
+        if not self.validate_subactor_config(subactor_class, target_types):
+            raise RuntimeError("{cls} does not support all of {targets}"
+                               .format(cls=subactor_class,
+                                       targets=target_types))
         return subactor_class(db=self.db, cursor=self.cursor,
                               subreddit=subreddit,
                               **subactor_config.get('params', {}))
@@ -190,3 +195,7 @@ class YAMLLoader:
         self.db.commit()
 
         return browser.Browser(actors, subreddit, self.db, self.cursor)
+
+    def validate_subactor_config(self, subactor_class, target_types):
+        """Return True iff each target_type is supported by subactor_class."""
+        return set(target_types).issubset(subactor_class.VALID_TARGETS)

@@ -134,6 +134,9 @@ class Subactor:
 
 class Notifier(Subactor):
     "A class for replying to targets."
+    VALID_TARGETS = [praw.models.Submission,
+                     praw.models.Comment]
+
     def __init__(self, text, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.text = text
@@ -188,6 +191,9 @@ class Notifier(Subactor):
 
 class WikiWatcher(Subactor):
     "A class for adding authors to AutoMod configuration lists."
+    VALID_TARGETS = [praw.models.Submission,
+                     praw.models.Comment]
+
     def __init__(self, placeholder, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.placeholder = placeholder
@@ -233,6 +239,9 @@ class WikiWatcher(Subactor):
 
 class Banner(Subactor):
     "A class to ban authors."
+    VALID_TARGETS = [praw.models.Submission,
+                     praw.models.Comment]
+
     def __init__(self, message, reason, duration=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.message = message
@@ -257,6 +266,8 @@ class Nuker(Subactor):
     Does not affect the target itself.
 
     """
+    VALID_TARGETS = [praw.models.Comment]
+
     def action(self, post, mod, action_id):
         "Remove the replies."
         try:
@@ -279,6 +290,8 @@ class Nuker(Subactor):
 
 class ToolboxNoteAdder(Subactor):
     """A class to add Moderator Toolbox notes to the wiki."""
+    VALID_TARGETS = [praw.models.Submission,
+                     praw.models.Comment]
     EXPECTED_VERSION = 6
 
     def __init__(self, text, level, *args, **kwargs):
