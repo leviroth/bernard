@@ -40,7 +40,7 @@ setup(
 
     extras_require={
         'test': ['betamax >=0.8, <0.9',
-                 'betamax-serializers >=0.2, <0.3'
+                 'betamax-serializers >=0.2, <0.3',
                  'mock >=2.0.0, <3.0'],
     },
 )
