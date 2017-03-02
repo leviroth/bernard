@@ -132,6 +132,29 @@ class Subactor:
         pass
 
 
+class Banner(Subactor):
+    "A class to ban authors."
+    VALID_TARGETS = [praw.models.Submission,
+                     praw.models.Comment]
+
+    def __init__(self, message, reason, duration=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.message = message
+        self.reason = reason
+        self.duration = duration
+
+    def action(self, post, mod, action_id):
+        "Ban author of post."
+        try:
+            self.subreddit.banned.add(
+                post.author, duration=self.duration, ban_message=self.message,
+                ban_reason="{} - by {}".format(self.reason, mod)[:300]
+            )
+        except Exception as e:
+            logging.error("Failed to ban {user}: {err}"
+                          .format(user=post.author, err=e))
+
+
 class Notifier(Subactor):
     "A class for replying to targets."
     VALID_TARGETS = [praw.models.Submission,
@@ -187,77 +210,6 @@ class Notifier(Subactor):
         _, comment_id = helpers.deserialize_thing_id(comment.fullname)
         self.cursor.execute('INSERT INTO notifications (comment_id, '
                             'action_id) VALUES(?,?)', (comment_id, action_id))
-
-
-class WikiWatcher(Subactor):
-    "A class for adding authors to AutoMod configuration lists."
-    VALID_TARGETS = [praw.models.Submission,
-                     praw.models.Comment]
-
-    def __init__(self, placeholder, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.placeholder = placeholder
-        self.to_add = []
-
-    def action(self, post, mod, action_id):
-        """Add author to local list of users. Actual wiki update performed in
-        WikiWatcher.after.
-
-        """
-        self.to_add.append(str(post.author))
-
-    def after(self):
-        "Add accumulated list of users to AutoMod config."
-        if not self.to_add:
-            return
-
-        names = ', '.join(self.to_add)
-
-        try:
-            automod_config = self.subreddit.wiki['config/automoderator']
-        except Exception as e:
-            logging.error("Failed to load automod config: {err}"
-                          .format(err=e))
-            return
-
-        new_content = unescape(automod_config.content_md)
-        new_content = new_content.replace(
-            self.placeholder,
-            '{placeholder}, {names}'
-            .format(placeholder=self.placeholder, names=names)
-        )
-
-        try:
-            automod_config.edit(new_content)
-        except Exception as e:
-            logging.error("Failed to update automod config {err}"
-                          .format(err=e))
-            return
-        else:
-            self.to_add = []
-
-
-class Banner(Subactor):
-    "A class to ban authors."
-    VALID_TARGETS = [praw.models.Submission,
-                     praw.models.Comment]
-
-    def __init__(self, message, reason, duration=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.message = message
-        self.reason = reason
-        self.duration = duration
-
-    def action(self, post, mod, action_id):
-        "Ban author of post."
-        try:
-            self.subreddit.banned.add(
-                post.author, duration=self.duration, ban_message=self.message,
-                ban_reason="{} - by {}".format(self.reason, mod)[:300]
-            )
-        except Exception as e:
-            logging.error("Failed to ban {user}: {err}"
-                          .format(user=post.author, err=e))
 
 
 class Nuker(Subactor):
@@ -406,3 +358,51 @@ class ToolboxNoteAdder(Subactor):
         elif isinstance(thing, praw.models.Comment):
             return 'l,{submission_id},{comment_id}'.format(
                 submission_id=thing.submission.id, comment_id=thing.id)
+
+
+class WikiWatcher(Subactor):
+    "A class for adding authors to AutoMod configuration lists."
+    VALID_TARGETS = [praw.models.Submission,
+                     praw.models.Comment]
+
+    def __init__(self, placeholder, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.placeholder = placeholder
+        self.to_add = []
+
+    def action(self, post, mod, action_id):
+        """Add author to local list of users. Actual wiki update performed in
+        WikiWatcher.after.
+
+        """
+        self.to_add.append(str(post.author))
+
+    def after(self):
+        "Add accumulated list of users to AutoMod config."
+        if not self.to_add:
+            return
+
+        names = ', '.join(self.to_add)
+
+        try:
+            automod_config = self.subreddit.wiki['config/automoderator']
+        except Exception as e:
+            logging.error("Failed to load automod config: {err}"
+                          .format(err=e))
+            return
+
+        new_content = unescape(automod_config.content_md)
+        new_content = new_content.replace(
+            self.placeholder,
+            '{placeholder}, {names}'
+            .format(placeholder=self.placeholder, names=names)
+        )
+
+        try:
+            automod_config.edit(new_content)
+        except Exception as e:
+            logging.error("Failed to update automod config {err}"
+                          .format(err=e))
+            return
+        else:
+            self.to_add = []
