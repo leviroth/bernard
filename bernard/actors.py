@@ -263,13 +263,18 @@ class Banner(Subactor):
 class Nuker(Subactor):
     """A class to recursiely remove replies.
 
-    Does not affect the target itself.
+    Does not affect the target itself. Submissions are skipped, but accepted
+    for backwards compatibility.
 
     """
-    VALID_TARGETS = [praw.models.Comment]
+    VALID_TARGETS = [praw.models.Submission,
+                     praw.models.Comment]
 
     def action(self, post, mod, action_id):
         "Remove the replies."
+        if isinstance(post, praw.models.Submission):
+            return
+
         try:
             post.refresh()
             post.replies.replace_more()
