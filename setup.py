@@ -11,7 +11,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='Bernard J. Ortcutt',
 
-    version='2.1.0',
+    version='0.4.0',
 
     description='Reddit moderation automated through reports',
     long_description=long_description,
