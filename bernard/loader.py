@@ -183,11 +183,12 @@ class YAMLLoader:
 
         # Add remover/notifier for subreddit rules and, if desired,
         # nuker/notifier for comment rules.
-        actors.extend(
-            load_subreddit_rules(subreddit, sub_rules, header, self.db,
-                                 self.cursor))
+        if subreddit_config.get('default_post_actions'):
+            actors.extend(
+                load_subreddit_rules(subreddit, sub_rules, header, self.db,
+                                     self.cursor))
 
-        if subreddit_config.get('nuke_rules') is not None:
+        if subreddit_config.get('default_comment_actions'):
             actors.extend(
                 load_comment_rules(subreddit, sub_rules, self.db, self.cursor))
 

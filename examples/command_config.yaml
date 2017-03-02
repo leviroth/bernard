@@ -1,5 +1,7 @@
 subreddits:
 - name: thirdrealm
+  default_post_actions: true
+  default_comment_actions: true
   header: >
     Thank you for your post to /r/ThirdRealm. Unfortunately, a moderator has
     removed it according to the following rule:
