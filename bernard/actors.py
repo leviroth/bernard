@@ -155,6 +155,18 @@ class Banner(Subactor):
                           .format(user=post.author, err=e))
 
 
+class Locker(Subactor):
+    """Locks posts, without necessarily removing them."""
+    VALID_TARGETS = [praw.models.Submission]
+
+    def action(self, post, mod, action_id):
+        try:
+            post.mod.lock()
+        except Exception as e:
+            logging.error("Failed to lock {post}: {err}"
+                          .format(post=post, err=e))
+
+
 class Notifier(Subactor):
     "A class for replying to targets."
     VALID_TARGETS = [praw.models.Submission,
