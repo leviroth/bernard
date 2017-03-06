@@ -6,15 +6,18 @@ moderation, based on a customizable configuration.
 
 ## Setup ##
 
-Bernard depends on [PRAW](https://github.com/praw-dev/praw)
-and [PyYAML](http://pyyaml.org/). Let `setup.py` guide you to the correct
-versions.
+You can install the latest development version with:
+
+    pip install https://github.com/leviroth/bernard/archive/master.zip
 
 Your subreddit must be configured
 for [toolbox's](https://github.com/creesch/reddit-moderator-toolbox/) usernotes
 module, or else the built-in commands will fail.
 
-The database should be set up by reading `create_tables.sql` with SQLite3.
+The database should be set up by reading `create_tables.sql` with SQLite3, as
+in:
+
+    sqlite3 bernard-database.sq3 ".read create_tables.sql"
 
 The bot requires `access`, `config`, `posts,` and `wiki` permissions. While not
 strictly necessary, `mail` permissions keep replies to ban messages from going
