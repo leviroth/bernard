@@ -40,7 +40,8 @@ trusted sources you'll want to monitor startup to make sure that nothing has
 crashed. Some basic validation can be performed manually via `schema.yaml`
 and [pyKwalify](https://github.com/Grokzen/pykwalify).
 
-Regardless of configuration, certain core commands are always loaded:
+The per-subreddit `default_post_actions` and `default_comment_actions` keys
+allow automatic loading of the following defaults:
 
   - For
     each
