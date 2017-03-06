@@ -88,11 +88,17 @@ class Actor:
         action_summary = self.action_name
         action_details = self.action_details
 
+        # If author deletes their account, target.author shows up as None
+        if target.author is None:
+            author_name = "[deleted]"
+        else:
+            author_name = target.author.name
+
         # Get (or create) database entries for author and moderator
         self.cursor.execute('INSERT OR IGNORE INTO users (username) '
-                            'VALUES(?)', (target.author.name,))
+                            'VALUES(?)', (author_name,))
         self.cursor.execute('SELECT id FROM users WHERE username = ?',
-                            (target.author.name,))
+                            (author_name,))
         author_id = self.cursor.fetchone()[0]
         self.cursor.execute('INSERT OR IGNORE INTO users (username) '
                             'VALUES(?)', (moderator,))
