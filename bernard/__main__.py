@@ -7,18 +7,10 @@ import time
 
 from . import helpers, loader
 
-_, login_conf, subs_conf, db_file = sys.argv
+_, subs_conf, db_file = sys.argv
 
-with open(login_conf) as f:
-    config_file_data = json.load(f)
-
-reddit_config = {key: config_file_data[key]
-                 for key in ["client_id", "client_secret", "username",
-                             "password"]}
-reddit_config["user_agent"] = \
-  "python:/r/Philosophy reporter:v0.4.0 (by levimroth@gmail.com)"
-
-r = praw.Reddit(**reddit_config)
+USER_AGENT = "python:/r/Philosophy reporter:v0.4.0 (by levimroth@gmail.com)"
+r = praw.Reddit(user_agent=USER_AGENT)
 db = sqlite3.connect(db_file)
 cursor = db.cursor()
 

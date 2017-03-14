@@ -24,9 +24,13 @@ strictly necessary, `mail` permissions keep replies to ban messages from going
 to your bot's inbox. That makes it easier to isolate the messages sent to your
 bot, which would be missed otherwise and which are very occasionally useful.
 
+Login information should be configured with
+a
+[praw.ini file](http://praw.readthedocs.io/en/latest/getting_started/configuration/prawini.html).
+
 ## Usage ##
 
-    python -m bernard [login_config_file] [command_config_file] [database]
+    python -m bernard [command_config_file] [database]
 
 ## Configuration ##
 
