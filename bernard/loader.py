@@ -163,13 +163,11 @@ class YAMLLoader:
 
     def parse_subactor_config(self, subactor_config, subreddit, target_types):
         subactor_class = _subactor_registry[subactor_config['action']]
-        if not self.validate_subactor_config(subactor_class, target_types):
-            raise RuntimeError("{cls} does not support all of {targets}"
-                               .format(cls=subactor_class,
-                                       targets=target_types))
+        params = subactor_config.get('params', {})
+        self.validate_subactor_config(subactor_class, params, target_types)
         return subactor_class(db=self.db, cursor=self.cursor,
-                              subreddit=subreddit,
-                              **subactor_config.get('params', {}))
+                              subreddit=subreddit, **params
+                              )
 
     def parse_subreddit_config(self, subreddit_config):
         """Return a Browser with actors draw from the configuration and the subreddit
@@ -198,6 +196,10 @@ class YAMLLoader:
 
         return browser.Browser(actors, subreddit, self.db, self.cursor)
 
-    def validate_subactor_config(self, subactor_class, target_types):
-        """Return True iff each target_type is supported by subactor_class."""
-        return set(target_types).issubset(subactor_class.VALID_TARGETS)
+    def validate_subactor_config(self, subactor_class, params, target_types):
+        """Raise exception if subactor configuration is invalid."""
+        if not set(target_types).issubset(subactor_class.VALID_TARGETS):
+            raise RuntimeError("{cls} does not support all of {targets}"
+                               .format(cls=subactor_class,
+                                       targets=target_types))
+        subactor_class.validate_params(params)

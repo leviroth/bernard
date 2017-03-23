@@ -124,6 +124,15 @@ class Actor:
 
 class Subactor:
     "Base class for specific actions the bot can perform."
+    @classmethod
+    def validate_params(cls, params):
+        """Verify types of params."""
+        for param, value in params.items():
+            required_type = cls.REQUIRED_TYPES[param]
+            if value and not isinstance(value, required_type):
+                raise RuntimeError("Invalid type of parameter {} (expected {})"
+                                   .format(param, required_type))
+
     def __init__(self, db, cursor, subreddit):
         self.db = db
         self.cursor = cursor
@@ -140,10 +149,15 @@ class Subactor:
 
 class Banner(Subactor):
     "A class to ban authors."
+    REQUIRED_TYPES = {'message': str,
+                      'reason': str,
+                      'duration': int,
+                      }
     VALID_TARGETS = [praw.models.Submission,
                      praw.models.Comment]
 
-    def __init__(self, message, reason, duration=None, *args, **kwargs):
+    def __init__(self, message=None, reason=None, duration=None, *args,
+                 **kwargs):
         super().__init__(*args, **kwargs)
         self.message = message
         self.reason = reason
@@ -175,6 +189,8 @@ class Locker(Subactor):
 
 class Notifier(Subactor):
     "A class for replying to targets."
+    REQUIRED_TYPES = {'text': str,
+                      }
     VALID_TARGETS = [praw.models.Submission,
                      praw.models.Comment]
 
@@ -265,6 +281,9 @@ class Nuker(Subactor):
 
 class ToolboxNoteAdder(Subactor):
     """A class to add Moderator Toolbox notes to the wiki."""
+    REQUIRED_TYPES = {'level': str,
+                      'text': str,
+                      }
     VALID_TARGETS = [praw.models.Submission,
                      praw.models.Comment]
     EXPECTED_VERSION = 6
@@ -380,6 +399,8 @@ class ToolboxNoteAdder(Subactor):
 
 class WikiWatcher(Subactor):
     "A class for adding authors to AutoMod configuration lists."
+    REQUIRED_TYPES = {'placeholder': str,
+                      }
     VALID_TARGETS = [praw.models.Submission,
                      praw.models.Comment]
 
