@@ -18,10 +18,6 @@ def _sleep(*args):
 time.sleep = _sleep
 
 
-with open('test_config.json') as f:
-    placeholders = json.load(f)
-
-
 def b64_string(input_string):
     """Return a base64 encoded string (not bytes) from input_string."""
     return b64encode(input_string.encode('utf-8')).decode('utf-8')
@@ -46,6 +42,11 @@ def filter_access_token(interaction, current_cassette):
 
 class BJOTest(unittest.TestCase):
     def configure(self):
+        self.r = praw.Reddit(
+            user_agent="Tests for BernardJOrtcutt - levimroth@gmail.com")
+        placeholders = {
+            x: getattr(self.r.config, x)
+            for x in "client_id client_secret username password".split()}
         placeholders['basic_auth'] = b64_string(
             '{}:{}'.format(placeholders['client_id'],
                            placeholders['client_secret']))
@@ -58,7 +59,6 @@ class BJOTest(unittest.TestCase):
                 config.define_cassette_placeholder('<{}>'.format(key.upper()),
                                                    value)
 
-        self.r = praw.Reddit(**placeholders)
         self.subreddit = self.r.subreddit('thirdrealm')
         self.db = sqlite3.connect(':memory:')
         self.cur = self.db.cursor()
