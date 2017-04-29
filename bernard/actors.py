@@ -156,6 +156,20 @@ class Banner(Subactor):
     VALID_TARGETS = [praw.models.Submission,
                      praw.models.Comment]
 
+    def _footer(self, target):
+        "Return footer identifying the target that led to the ban."
+        if isinstance(target, praw.models.Comment):
+            # praw.models.Comment.permalink is a method
+            permalink = target.permalink()
+            kind = "comment"
+        else:
+            permalink = target.permalink
+            kind = "post"
+
+        return (
+            "\n\nThis action was taken because of the following {}: {}"
+        ).format(kind, permalink)
+
     def __init__(self, message=None, reason=None, duration=None, *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -165,9 +179,10 @@ class Banner(Subactor):
 
     def action(self, post, mod, action_id):
         "Ban author of post."
+        message = self.message + self._footer(post)
         try:
             self.subreddit.banned.add(
-                post.author, duration=self.duration, ban_message=self.message,
+                post.author, duration=self.duration, ban_message=message,
                 ban_reason="{} - by {}".format(self.reason, mod)[:300]
             )
         except Exception as e:
