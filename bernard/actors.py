@@ -279,7 +279,7 @@ class Nuker(Subactor):
         try:
             post.refresh()
             post.replies.replace_more()
-            flat_tree = post.replies.list() + [post]
+            flat_tree = post.replies.list()
         except Exception as e:
             logging.error("Failed to retrieve comment tree on {thing}: {err}"
                           .format(thing=post.name, err=str(e)))
