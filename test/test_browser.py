@@ -17,7 +17,6 @@ class TestBrowser(BJOTest):
             action_name="Remove",
             action_details=None,
             db=self.db,
-            cursor=self.cur,
             subreddit=self.subreddit
         )
         self.browser = browser.Browser([self.actor], self.subreddit, self.db,

@@ -33,7 +33,7 @@ def get_rules(subreddit):
     return list(subreddit._reddit.get(api_path)['rules'])
 
 
-def load_subreddit_rules(subreddit, rules, header, db, cursor):
+def load_subreddit_rules(subreddit, rules, header, db):
     "Create a remover/notifier for each post rule."
     post_rules = [rule for rule in rules
                   if rule['kind'] == 'link' or rule['kind'] == 'all']
@@ -52,14 +52,12 @@ def load_subreddit_rules(subreddit, rules, header, db, cursor):
             actors.Notifier(
                 text=note_text,
                 subreddit=subreddit,
-                db=db,
-                cursor=cursor),
+                db=db),
             actors.ToolboxNoteAdder(
                 text="Post removed (Rule {})".format(i),
                 level="abusewarn",
                 subreddit=subreddit,
-                db=db,
-                cursor=cursor)
+                db=db)
         ]
 
         our_rules.append(
@@ -71,7 +69,6 @@ def load_subreddit_rules(subreddit, rules, header, db, cursor):
                 'Removed',
                 'Rule {}'.format(i),
                 db,
-                cursor,
                 subreddit
             )
         )
@@ -79,7 +76,7 @@ def load_subreddit_rules(subreddit, rules, header, db, cursor):
     return our_rules
 
 
-def load_comment_rules(subreddit, rules, db, cursor):
+def load_comment_rules(subreddit, rules, db):
     "Create a nuker/warner for each comment rule."
     header = "Please bear in mind our commenting rules:"
     comment_rules = [rule for rule in rules
@@ -96,19 +93,16 @@ def load_comment_rules(subreddit, rules, db, cursor):
         actions = [
             actors.Nuker(
                 subreddit=subreddit,
-                db=db,
-                cursor=cursor),
+                db=db),
             actors.Notifier(
                 text=note_text,
                 subreddit=subreddit,
-                db=db,
-                cursor=cursor),
+                db=db),
             actors.ToolboxNoteAdder(
                 text="Post removed (Rule {})".format(i),
                 level="abusewarn",
                 subreddit=subreddit,
-                db=db,
-                cursor=cursor)
+                db=db)
         ]
 
         our_rules.append(
@@ -120,7 +114,6 @@ def load_comment_rules(subreddit, rules, db, cursor):
                 'Nuked',
                 'Comment Rule {}'.format(i),
                 db,
-                cursor,
                 subreddit
             )
         )
@@ -129,9 +122,8 @@ def load_comment_rules(subreddit, rules, db, cursor):
 
 
 class YAMLLoader:
-    def __init__(self, db, cursor, reddit):
+    def __init__(self, db, reddit):
         self.db = db
-        self.cursor = cursor
         self.reddit = reddit
 
     def load(self, filename):
@@ -157,7 +149,6 @@ class YAMLLoader:
             actor_config['name'],
             actor_config.get('details'),
             self.db,
-            self.cursor,
             subreddit
         )
 
@@ -165,9 +156,7 @@ class YAMLLoader:
         subactor_class = _subactor_registry[subactor_config['action']]
         params = subactor_config.get('params', {})
         self.validate_subactor_config(subactor_class, params, target_types)
-        return subactor_class(db=self.db, cursor=self.cursor,
-                              subreddit=subreddit, **params
-                              )
+        return subactor_class(db=self.db, subreddit=subreddit, **params)
 
     def parse_subreddit_config(self, subreddit_config):
         """Return a Browser with actors draw from the configuration and the subreddit
@@ -183,18 +172,17 @@ class YAMLLoader:
         # Add remover/notifier for subreddit rules and, if desired,
         # nuker/notifier for comment rules.
         if subreddit_config.get('default_post_actions'):
-            actors.extend(
-                load_subreddit_rules(subreddit, sub_rules, header, self.db,
-                                     self.cursor))
+            actors.extend(load_subreddit_rules(subreddit, sub_rules, header,
+                                               self.db))
 
         if subreddit_config.get('default_comment_actions'):
             actors.extend(
-                load_comment_rules(subreddit, sub_rules, self.db, self.cursor))
+                load_comment_rules(subreddit, sub_rules, self.db))
 
-        helpers.update_sr_tables(self.cursor, subreddit)
+        helpers.update_sr_tables(self.db.cursor(), subreddit)
         self.db.commit()
 
-        return browser.Browser(actors, subreddit, self.db, self.cursor)
+        return browser.Browser(actors, subreddit, self.db)
 
     def validate_subactor_config(self, subactor_class, params, target_types):
         """Raise exception if subactor configuration is invalid."""

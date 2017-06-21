@@ -19,7 +19,7 @@ class Actor:
 
     """
     def __init__(self, trigger, targets, remove, subactors, action_name,
-                 action_details, db, cursor, subreddit):
+                 action_details, db, subreddit):
         self.trigger = trigger
         self.targets = targets
         self.remove = remove
@@ -27,7 +27,7 @@ class Actor:
         self.action_name = action_name
         self.action_details = action_details
         self.db = db
-        self.cursor = cursor
+        self.cursor = db.cursor()
         self.subreddit = subreddit
 
     def match(self, command, post):

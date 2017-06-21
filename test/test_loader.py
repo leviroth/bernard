@@ -7,7 +7,7 @@ from praw.models import Comment, Submission
 class TestValidation(BJOTest):
     def setUp(self):
         super().setUp()
-        self.loader = YAMLLoader(self.db, self.cur, self.subreddit)
+        self.loader = YAMLLoader(self.db, self.subreddit)
 
     def test_bad_param_type(self):
         params = {'text': 3}

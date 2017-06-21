@@ -18,7 +18,6 @@ class TestActor(BJOTest):
             action_name="Remove",
             action_details=None,
             db=self.db,
-            cursor=self.cur,
             subreddit=self.subreddit
         )
 
