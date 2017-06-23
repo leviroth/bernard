@@ -1,12 +1,14 @@
+"""Classes that carry out specific actions on posts and comments."""
 import base64
 import json
 import logging
-import praw
-import prawcore
 import time
 import urllib.parse
 import zlib
 from xml.sax.saxutils import unescape
+
+import praw
+import prawcore
 
 from . import helpers
 
@@ -19,15 +21,15 @@ class Actor:
 
     """
     def __init__(self, trigger, targets, remove, subactors, action_name,
-                 action_details, db, subreddit):
+                 action_details, database, subreddit):
         self.trigger = trigger
         self.targets = targets
         self.remove = remove
         self.subactors = subactors
         self.action_name = action_name
         self.action_details = action_details
-        self.db = db
-        self.cursor = db.cursor()
+        self.database = database
+        self.cursor = database.cursor()
         self.subreddit = subreddit
 
     def match(self, command, post):
@@ -57,7 +59,7 @@ class Actor:
             else:
                 post.mod.approve()
 
-            self.db.commit()
+            self.database.commit()
 
     def after(self):
         "Perform end-of-loop actions for each subactor."
@@ -68,16 +70,14 @@ class Actor:
         "Perform and log removal. Lock if thing is a submission."
         try:
             thing.mod.remove()
-        except Exception as e:
-            logging.error("Failed to remove {thing}: {err}"
-                          .format(thing=thing, err=e))
+        except prawcore.exceptions.RequestException as exception:
+            logging.error("Failed to remove %s: %s", thing, exception)
 
         if isinstance(thing, praw.models.Submission):
             try:
                 thing.mod.lock()
-            except Exception as e:
-                logging.error("Failed to lock {thing}: {err}"
-                              .format(thing=thing, err=e))
+            except prawcore.exceptions.RequestException as exception:
+                logging.error("Failed to lock %s: %s", thing, exception)
 
         self.cursor.execute('INSERT INTO removals (action_id) VALUES(?)',
                             (action_id,))
@@ -124,6 +124,9 @@ class Actor:
 
 class Subactor:
     "Base class for specific actions the bot can perform."
+    REQUIRED_TYPES = {}
+    VALID_TARGETS = []
+
     @classmethod
     def validate_params(cls, params):
         """Verify types of params."""
@@ -133,9 +136,9 @@ class Subactor:
                 raise RuntimeError("Invalid type of parameter {} (expected {})"
                                    .format(param, required_type))
 
-    def __init__(self, db, cursor, subreddit):
-        self.db = db
-        self.cursor = cursor
+    def __init__(self, database, subreddit):
+        self.database = database
+        self.cursor = database.cursor()
         self.subreddit = subreddit
 
     def action(self, post, mod, action_id):
@@ -151,12 +154,12 @@ class Banner(Subactor):
     "A class to ban authors."
     REQUIRED_TYPES = {'message': str,
                       'reason': str,
-                      'duration': int,
-                      }
+                      'duration': int}
     VALID_TARGETS = [praw.models.Submission,
                      praw.models.Comment]
 
-    def _footer(self, target):
+    @staticmethod
+    def _footer(target):
         "Return footer identifying the target that led to the ban."
         if isinstance(target, praw.models.Comment):
             # praw.models.Comment.permalink is a method
@@ -185,9 +188,8 @@ class Banner(Subactor):
                 post.author, duration=self.duration, ban_message=message,
                 ban_reason="{} - by {}".format(self.reason, mod)[:300]
             )
-        except Exception as e:
-            logging.error("Failed to ban {user}: {err}"
-                          .format(user=post.author, err=e))
+        except prawcore.exceptions.RequestException as exception:
+            logging.error("Failed to ban %s: %s", post.author, exception)
 
 
 class Locker(Subactor):
@@ -197,15 +199,13 @@ class Locker(Subactor):
     def action(self, post, mod, action_id):
         try:
             post.mod.lock()
-        except Exception as e:
-            logging.error("Failed to lock {post}: {err}"
-                          .format(post=post, err=e))
+        except prawcore.exceptions.RequestException as exception:
+            logging.error("Failed to lock %s: %s", post, exception)
 
 
 class Notifier(Subactor):
     "A class for replying to targets."
-    REQUIRED_TYPES = {'text': str,
-                      }
+    REQUIRED_TYPES = {'text': str}
     VALID_TARGETS = [praw.models.Submission,
                      praw.models.Comment]
 
@@ -240,21 +240,21 @@ class Notifier(Subactor):
 
         try:
             result = post.reply(text)
-        except Exception as e:
-            logging.error("Failed to add comment on {thing}: {err}"
-                          .format(thing=post.name, err=str(e)))
+        except prawcore.exceptions.RequestException as exception:
+            logging.error("Failed to add comment on %s: %s", post.name,
+                          exception)
             return
         else:
-            self.log_notification(post, result, action_id)
+            self.log_notification(result, action_id)
 
         try:
             result.mod.distinguish(sticky=isinstance(post,
                                                      praw.models.Submission))
-        except Exception as e:
-            logging.error("Failed to distinguish comment on {thing}: {err}"
-                          .format(thing=post.name, err=str(e)))
+        except prawcore.exceptions.RequestException as exception:
+            logging.error("Failed to distinguish comment on %s: %s", post.name,
+                          exception)
 
-    def log_notification(self, parent, comment, action_id):
+    def log_notification(self, comment, action_id):
         "Log notification, associating comment id with action."
         _, comment_id = helpers.deserialize_thing_id(comment.fullname)
         self.cursor.execute('INSERT INTO notifications (comment_id, '
@@ -280,28 +280,62 @@ class Nuker(Subactor):
             post.refresh()
             post.replies.replace_more()
             flat_tree = post.replies.list()
-        except Exception as e:
-            logging.error("Failed to retrieve comment tree on {thing}: {err}"
-                          .format(thing=post.name, err=str(e)))
+        except prawcore.exceptions.RequestException as exception:
+            logging.error("Failed to retrieve comment tree on %s: %s",
+                          post.name, exception)
             return
 
         for comment in flat_tree:
             if comment.distinguished is None:
                 try:
                     comment.mod.remove()
-                except Exception as e:
-                    logging.error("Failed to remove comment {thing}: {err}"
-                                  .format(thing=comment.name, err=str(e)))
+                except prawcore.exceptions.RequestException as exception:
+                    logging.error("Failed to remove comment %s: %s",
+                                  comment.name, exception)
 
 
 class ToolboxNoteAdder(Subactor):
     """A class to add Moderator Toolbox notes to the wiki."""
     REQUIRED_TYPES = {'level': str,
-                      'text': str,
-                      }
+                      'text': str}
     VALID_TARGETS = [praw.models.Submission,
                      praw.models.Comment]
     EXPECTED_VERSION = 6
+
+    @staticmethod
+    def compress_blob(data_dict):
+        """Return a blob from usernotes dict."""
+        serialized_data = json.dumps(data_dict)
+        compressed = zlib.compress(serialized_data.encode())
+        base64_encoded = base64.b64encode(compressed)
+        return base64_encoded.decode()
+
+    @staticmethod
+    def decompress_blob(blob):
+        """Return dict from compressed usernote blob."""
+        decoded = base64.b64decode(blob)
+        unzipped = zlib.decompress(decoded)
+        return json.loads(unzipped.decode())
+
+    @staticmethod
+    def fetch_notes_dict(wiki_page):
+        """Fetch usernotes dict from wiki.
+
+        Uses network connection; may therefore raise
+        prawcore.exceptions.RequestException.
+
+        """
+        usernotes_json = wiki_page.content_md
+        return json.loads(usernotes_json)
+
+    @staticmethod
+    def toolbox_link_string(thing):
+        """Return thing's URL compressed in Toolbox's format."""
+        if isinstance(thing, praw.models.Submission):
+            return 'l,{submission_id}'.format(submission_id=thing.id)
+        elif isinstance(thing, praw.models.Comment):
+            return 'l,{submission_id},{comment_id}'.format(
+                submission_id=thing.submission.id, comment_id=thing.id)
 
     def __init__(self, text, level, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -324,9 +358,8 @@ class ToolboxNoteAdder(Subactor):
         wiki_page = self.subreddit.wiki['usernotes']
         try:
             usernotes_dict = self.fetch_notes_dict(wiki_page)
-        except prawcore.exceptions.RequestException as e:
-            logging.error("Failed to load toolbox usernotes: {err}"
-                          .format(err=e))
+        except prawcore.exceptions.RequestException as exception:
+            logging.error("Failed to load toolbox usernotes: %s", exception)
             return
 
         if usernotes_dict['ver'] != self.EXPECTED_VERSION:
@@ -363,9 +396,8 @@ class ToolboxNoteAdder(Subactor):
 
         try:
             wiki_page.edit(serialized_page)
-        except prawcore.exceptions.RequestException as e:
-            logging.error("Failed to update automod config {err}"
-                          .format(err=e))
+        except prawcore.exceptions.RequestException as exception:
+            logging.error("Failed to update automod config %s", exception)
             return
         else:
             self.to_add = []
@@ -380,42 +412,10 @@ class ToolboxNoteAdder(Subactor):
             "w": warning_index
         }
 
-    def compress_blob(self, data_dict):
-        """Return a blob from usernotes dict."""
-        serialized_data = json.dumps(data_dict)
-        compressed = zlib.compress(serialized_data.encode())
-        base64_encoded = base64.b64encode(compressed)
-        return base64_encoded.decode()
-
-    def decompress_blob(self, blob):
-        """Return dict from compressed usernote blob."""
-        decoded = base64.b64decode(blob)
-        unzipped = zlib.decompress(decoded)
-        return json.loads(unzipped.decode())
-
-    def fetch_notes_dict(self, wiki_page):
-        """Fetch usernotes dict from wiki.
-
-        Uses network connection; may therefore raise
-        prawcore.exceptions.RequestException.
-
-        """
-        usernotes_json = wiki_page.content_md
-        return json.loads(usernotes_json)
-
-    def toolbox_link_string(self, thing):
-        """Return thing's URL compressed in Toolbox's format."""
-        if isinstance(thing, praw.models.Submission):
-            return 'l,{submission_id}'.format(submission_id=thing.id)
-        elif isinstance(thing, praw.models.Comment):
-            return 'l,{submission_id},{comment_id}'.format(
-                submission_id=thing.submission.id, comment_id=thing.id)
-
 
 class WikiWatcher(Subactor):
     "A class for adding authors to AutoMod configuration lists."
-    REQUIRED_TYPES = {'placeholder': str,
-                      }
+    REQUIRED_TYPES = {'placeholder': str}
     VALID_TARGETS = [praw.models.Submission,
                      praw.models.Comment]
 
@@ -440,9 +440,8 @@ class WikiWatcher(Subactor):
 
         try:
             automod_config = self.subreddit.wiki['config/automoderator']
-        except Exception as e:
-            logging.error("Failed to load automod config: {err}"
-                          .format(err=e))
+        except prawcore.exceptions.RequestException as exception:
+            logging.error("Failed to load automod config: %s", exception)
             return
 
         new_content = unescape(automod_config.content_md)
@@ -454,9 +453,8 @@ class WikiWatcher(Subactor):
 
         try:
             automod_config.edit(new_content)
-        except Exception as e:
-            logging.error("Failed to update automod config {err}"
-                          .format(err=e))
+        except prawcore.exceptions.RequestException as exception:
+            logging.error("Failed to update automod config %s", exception)
             return
         else:
             self.to_add = []

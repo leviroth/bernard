@@ -1,42 +1,57 @@
+"""Entry point for the bot."""
 import logging
-import praw
 import sqlite3
 import sys
 import time
 
-from . import helpers, loader
+import praw
+import prawcore
 
-_, subs_conf, db_file = sys.argv
+from . import helpers
+from .loader import YAMLLoader
 
 USER_AGENT = "python:/r/Philosophy reporter:v0.4.0 (by levimroth@gmail.com)"
-r = praw.Reddit(user_agent=USER_AGENT)
-db = sqlite3.connect(db_file)
-cursor = db.cursor()
 
-loader = loader.YAMLLoader(db, cursor, r)
-browsers = loader.load(subs_conf)
-db.commit()
 
-print("Loaded")
+def main():
+    """Entry point for the bot."""
+    if len(sys.argv) != 3:
+        print("Usage: python -m bernard [configuration file] [database]")
+        exit(1)
+    # pylint: disable=unbalanced-tuple-unpacking
+    _, subs_conf, db_file = sys.argv
 
-counter = 0
-while True:
-    try:
-        for browser in browsers:
-            browser.run()
-        if counter == 20:
+    reddit = praw.Reddit(user_agent=USER_AGENT)
+    database = sqlite3.connect(db_file)
+    cursor = database.cursor()
+
+    loader = YAMLLoader(database, reddit)
+    browsers = loader.load(subs_conf)
+    database.commit()
+
+    print("Loaded")
+
+    counter = 0
+    while True:
+        try:
             for browser in browsers:
-                try:
-                    helpers.update_sr_tables(cursor, browser.subreddit)
-                except Exception as e:
-                    logging.error(e)
-                    db.rollback()
-                else:
-                    db.commit()
-            counter = 0
-        else:
-            counter += 1
-        time.sleep(30)
-    except KeyboardInterrupt:
-        print("Keyboard interrupt; shutting down...")
-        break
+                browser.run()
+            if counter == 20:
+                for browser in browsers:
+                    try:
+                        helpers.update_sr_tables(cursor, browser.subreddit)
+                    except prawcore.exceptions.RequestException as exception:
+                        logging.error(exception)
+                        database.rollback()
+                    else:
+                        database.commit()
+                counter = 0
+            else:
+                counter += 1
+            time.sleep(30)
+        except KeyboardInterrupt:
+            print("Keyboard interrupt; shutting down...")
+            break
+
+
+main()

@@ -1,13 +1,15 @@
+"""Provide the Browser class."""
 import logging
+
+import prawcore
 
 
 class Browser:
     "A class to fetch reports and dispatch to actors."
-    def __init__(self, actors, subreddit, db, cursor):
+    def __init__(self, actors, subreddit, database):
         self.actors = actors
         self.subreddit = subreddit
-        self.db = db
-        self.cursor = cursor
+        self.database = database
 
     def check_command(self, command, mod, post):
         "Check if any actor matches this report."
@@ -24,8 +26,8 @@ class Browser:
             for post in self.subreddit.mod.reports(limit=None):
                 for mod_report in post.mod_reports:
                     yield (str(mod_report[0]), mod_report[1], post)
-        except Exception as e:
-            logging.error("Error fetching reports: {err}".format(err=e))
+        except prawcore.exceptions.RequestException as exception:
+            logging.error("Error fetching reports: %s", exception)
 
     def run(self):
         "Fetch reports and dispatch to actors."

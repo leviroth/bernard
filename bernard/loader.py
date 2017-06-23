@@ -1,15 +1,17 @@
-import praw
+"""Module for loading configurations."""
 import re
+
+import praw
 import yaml
 
 from . import actors, browser, helpers
 
-_target_map = {
+_TARGET_MAP = {
     "comment": praw.models.Comment,
     "post":    praw.models.Submission,
 }
 
-_subactor_registry = {
+_SUBACTOR_REGISTRY = {
     'ban':       actors.Banner,
     'lock':      actors.Locker,
     'notify':    actors.Notifier,
@@ -27,13 +29,7 @@ def build_regex(commands):
                       re.IGNORECASE)
 
 
-def get_rules(subreddit):
-    "Get subreddit's rules."
-    api_path = '/r/{}/about/rules.json'.format(subreddit.display_name)
-    return list(subreddit._reddit.get(api_path)['rules'])
-
-
-def load_subreddit_rules(subreddit, rules, header, db):
+def load_subreddit_rules(subreddit, rules, header, database):
     "Create a remover/notifier for each post rule."
     post_rules = [rule for rule in rules
                   if rule['kind'] == 'link' or rule['kind'] == 'all']
@@ -52,12 +48,12 @@ def load_subreddit_rules(subreddit, rules, header, db):
             actors.Notifier(
                 text=note_text,
                 subreddit=subreddit,
-                db=db),
+                database=database),
             actors.ToolboxNoteAdder(
                 text="Post removed (Rule {})".format(i),
                 level="abusewarn",
                 subreddit=subreddit,
-                db=db)
+                database=database)
         ]
 
         our_rules.append(
@@ -68,7 +64,7 @@ def load_subreddit_rules(subreddit, rules, header, db):
                 actions,
                 'Removed',
                 'Rule {}'.format(i),
-                db,
+                database,
                 subreddit
             )
         )
@@ -76,8 +72,17 @@ def load_subreddit_rules(subreddit, rules, header, db):
     return our_rules
 
 
-def load_comment_rules(subreddit, rules, db):
-    "Create a nuker/warner for each comment rule."
+def validate_subactor_config(subactor_class, params, target_types):
+    """Raise exception if subactor configuration is invalid."""
+    if not set(target_types).issubset(subactor_class.VALID_TARGETS):
+        raise RuntimeError("{cls} does not support all of {targets}"
+                           .format(cls=subactor_class,
+                                   targets=target_types))
+    subactor_class.validate_params(params)
+
+
+def load_comment_rules(subreddit, rules, database):
+    """Create a nuker/warner for each comment rule."""
     header = "Please bear in mind our commenting rules:"
     comment_rules = [rule for rule in rules
                      if rule['kind'] == 'comment']
@@ -93,16 +98,16 @@ def load_comment_rules(subreddit, rules, db):
         actions = [
             actors.Nuker(
                 subreddit=subreddit,
-                db=db),
+                database=database),
             actors.Notifier(
                 text=note_text,
                 subreddit=subreddit,
-                db=db),
+                database=database),
             actors.ToolboxNoteAdder(
                 text="Post removed (Rule {})".format(i),
                 level="abusewarn",
                 subreddit=subreddit,
-                db=db)
+                database=database)
         ]
 
         our_rules.append(
@@ -113,7 +118,7 @@ def load_comment_rules(subreddit, rules, db):
                 actions,
                 'Nuked',
                 'Comment Rule {}'.format(i),
-                db,
+                database,
                 subreddit
             )
         )
@@ -122,21 +127,23 @@ def load_comment_rules(subreddit, rules, db):
 
 
 class YAMLLoader:
-    def __init__(self, db, reddit):
-        self.db = db
+    """Loader for YAML files."""
+    def __init__(self, database, reddit):
+        self.database = database
         self.reddit = reddit
 
     def load(self, filename):
-        with open(filename) as f:
+        """Parse the given file and return a list of Browsers."""
+        with open(filename) as file:
             if filename.endswith('.yaml'):
-                config = yaml.safe_load(f)
+                config = yaml.safe_load(file)
         return [self.parse_subreddit_config(subreddit_config)
                 for subreddit_config in config['subreddits']]
 
     def parse_actor_config(self, actor_config, subreddit):
-        "Return an Action corresponding to actor_config."
+        """Return an Action corresponding to actor_config."""
         command = build_regex(actor_config['trigger'])
-        target_types = [_target_map[x] for x in actor_config['types']]
+        target_types = [_TARGET_MAP[x] for x in actor_config['types']]
         subactors = [self.parse_subactor_config(subactor_config, subreddit,
                                                 target_types)
                      for subactor_config in actor_config['actions']]
@@ -148,46 +155,38 @@ class YAMLLoader:
             subactors,
             actor_config['name'],
             actor_config.get('details'),
-            self.db,
+            self.database,
             subreddit
         )
 
     def parse_subactor_config(self, subactor_config, subreddit, target_types):
-        subactor_class = _subactor_registry[subactor_config['action']]
+        """Parse subactor configuration and return a subactor."""
+        subactor_class = _SUBACTOR_REGISTRY[subactor_config['action']]
         params = subactor_config.get('params', {})
-        self.validate_subactor_config(subactor_class, params, target_types)
-        return subactor_class(db=self.db, subreddit=subreddit, **params)
+        validate_subactor_config(subactor_class, params, target_types)
+        return subactor_class(database=self.database, subreddit=subreddit,
+                              **params)
 
     def parse_subreddit_config(self, subreddit_config):
-        """Return a Browser with actors draw from the configuration and the subreddit
-        rules.
-
-        """
+        """Parse subreddit configuration and return a Browser."""
         subreddit = self.reddit.subreddit(subreddit_config['name'])
-        actors = [self.parse_actor_config(actor_config, subreddit)
-                  for actor_config in subreddit_config['rules']]
+        browser_actors = [self.parse_actor_config(actor_config, subreddit)
+                          for actor_config in subreddit_config['rules']]
         header = subreddit_config.get('header')
-        sub_rules = get_rules(subreddit)
+        sub_rules = subreddit.rules()
 
         # Add remover/notifier for subreddit rules and, if desired,
         # nuker/notifier for comment rules.
         if subreddit_config.get('default_post_actions'):
-            actors.extend(load_subreddit_rules(subreddit, sub_rules, header,
-                                               self.db))
+            browser_actors.extend(
+                load_subreddit_rules(
+                    subreddit, sub_rules, header, self.database))
 
         if subreddit_config.get('default_comment_actions'):
-            actors.extend(
-                load_comment_rules(subreddit, sub_rules, self.db))
+            browser_actors.extend(
+                load_comment_rules(subreddit, sub_rules, self.database))
 
-        helpers.update_sr_tables(self.db.cursor(), subreddit)
-        self.db.commit()
+        helpers.update_sr_tables(self.database.cursor(), subreddit)
+        self.database.commit()
 
-        return browser.Browser(actors, subreddit, self.db)
-
-    def validate_subactor_config(self, subactor_class, params, target_types):
-        """Raise exception if subactor configuration is invalid."""
-        if not set(target_types).issubset(subactor_class.VALID_TARGETS):
-            raise RuntimeError("{cls} does not support all of {targets}"
-                               .format(cls=subactor_class,
-                                       targets=target_types))
-        subactor_class.validate_params(params)
+        return browser.Browser(browser_actors, subreddit, self.database)

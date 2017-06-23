@@ -8,8 +8,7 @@ from mock import patch
 class TestActor(BJOTest):
     def setUp(self):
         super().setUp()
-        notifier = actors.Notifier('A notifcation', self.db, self.cur,
-                                   self.subreddit)
+        notifier = actors.Notifier('A notifcation', self.db, self.subreddit)
         self.actor = actors.Actor(
             trigger=re.compile('foo', re.I),
             targets=[praw.models.Submission],
@@ -17,7 +16,7 @@ class TestActor(BJOTest):
             subactors=[notifier],
             action_name="Remove",
             action_details=None,
-            db=self.db,
+            database=self.db,
             subreddit=self.subreddit
         )
 
@@ -53,8 +52,8 @@ class TestActor(BJOTest):
 class TestBanner(BJOTest):
     @patch('time.sleep', return_value=None)
     def test_action(self, _):
-        actor = actors.Banner("You banned", "testing purposes", 4,
-                              self.db, self.cur, self.subreddit)
+        actor = actors.Banner("You banned", "testing purposes", 4, self.db,
+                              self.subreddit)
         post = self.r.submission(id='5e7wc7')
         with self.recorder.use_cassette('TestBanner.test_action'):
             actor.action(post, 'TGB', action_id=1)
@@ -64,8 +63,7 @@ class TestBanner(BJOTest):
 class TestNotifier(BJOTest):
     @patch('time.sleep', return_value=None)
     def test_action(self, _):
-        actor = actors.Notifier("sample_text", self.db, self.cur,
-                                self.subreddit)
+        actor = actors.Notifier("sample_text", self.db, self.subreddit)
         post = self.r.submission(id='5kgajm')
         with self.recorder.use_cassette('TestNotifier.test_action'):
             actor.action(post, 'TGB', action_id=1)
@@ -77,7 +75,7 @@ class TestNotifier(BJOTest):
 class TestNuker(BJOTest):
     @patch('time.sleep', return_value=None)
     def test_action(self, _):
-        actor = actors.Nuker(self.db, self.cur, self.subreddit)
+        actor = actors.Nuker(self.db, self.subreddit)
         post = self.r.comment(id='dbnpgmz')
         with self.recorder.use_cassette('TestNuker.test_action'):
             actor.action(post, 'TGB', action_id=1)
@@ -88,8 +86,7 @@ class TestNuker(BJOTest):
 
 class TestWikiWatcher(BJOTest):
     def test_action(self):
-        actor = actors.WikiWatcher('test-placeholder', self.db, self.cur,
-                                   self.subreddit)
+        actor = actors.WikiWatcher('test-placeholder', self.db, self.subreddit)
         post = self.r.comment(id='dbnpgmz')
         with self.recorder.use_cassette('TestWikiWatcher.test_action'):
             actor.action(post, 'TGB', action_id=1)
@@ -98,8 +95,7 @@ class TestWikiWatcher(BJOTest):
 
     @patch('time.sleep', return_value=None)
     def test_after(self, _):
-        actor = actors.WikiWatcher('test!placeholder', self.db, self.cur,
-                                   self.subreddit)
+        actor = actors.WikiWatcher('test!placeholder', self.db, self.subreddit)
         actor.to_add.append('BJO_test_mod')
         with self.recorder.use_cassette('TestWikiWatcher.test_after'):
             actor.after()

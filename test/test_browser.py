@@ -16,11 +16,10 @@ class TestBrowser(BJOTest):
             subactors=[self.subactor],
             action_name="Remove",
             action_details=None,
-            db=self.db,
+            database=self.db,
             subreddit=self.subreddit
         )
-        self.browser = browser.Browser([self.actor], self.subreddit, self.db,
-                                       self.cur)
+        self.browser = browser.Browser([self.actor], self.subreddit, self.db)
 
     @unittest.mock.patch('time.sleep', return_value=None)
     def test_run(self, _):
