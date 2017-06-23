@@ -82,7 +82,7 @@ class Actor:
                 logging.error("Failed to lock %s: %s", thing, exception)
 
         self.cursor.execute('INSERT INTO removals (action_id) VALUES(?)',
-                            (action_id,))
+                            (action_id, ))
 
     def log_action(self, target, moderator):
         """Log action in database and console. Return database row id."""
@@ -98,14 +98,14 @@ class Actor:
 
         # Get (or create) database entries for author and moderator
         self.cursor.execute('INSERT OR IGNORE INTO users (username) '
-                            'VALUES(?)', (author_name,))
+                            'VALUES(?)', (author_name, ))
         self.cursor.execute('SELECT id FROM users WHERE username = ?',
-                            (author_name,))
+                            (author_name, ))
         author_id = self.cursor.fetchone()[0]
         self.cursor.execute('INSERT OR IGNORE INTO users (username) '
-                            'VALUES(?)', (moderator,))
+                            'VALUES(?)', (moderator, ))
         self.cursor.execute('SELECT id FROM users WHERE username = ?',
-                            (moderator,))
+                            (moderator, ))
         moderator_id = self.cursor.fetchone()[0]
 
         _, subreddit = helpers.deserialize_thing_id(self.subreddit.fullname)
@@ -113,10 +113,9 @@ class Actor:
         self.cursor.execute(
             'INSERT INTO actions (target_type, target_id, action_summary, '
             'action_details, author, moderator, subreddit) '
-            'VALUES(?,?,?,?,?,?,?)',
-            (target_type, target_id, action_summary, action_details, author_id,
-             moderator_id, subreddit)
-        )
+            'VALUES(?,?,?,?,?,?,?)', (target_type, target_id, action_summary,
+                                      action_details, author_id, moderator_id,
+                                      subreddit))
 
         print(moderator, action_summary, action_details, target,
               self.subreddit)
@@ -157,11 +156,8 @@ class Subactor:
 class Banner(Subactor):
     """A class to ban authors."""
 
-    REQUIRED_TYPES = {'message': str,
-                      'reason': str,
-                      'duration': int}
-    VALID_TARGETS = [praw.models.Submission,
-                     praw.models.Comment]
+    REQUIRED_TYPES = {'message': str, 'reason': str, 'duration': int}
+    VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
     @staticmethod
     def _footer(target):
@@ -174,11 +170,14 @@ class Banner(Subactor):
             permalink = target.permalink
             kind = "post"
 
-        return (
-            "\n\nThis action was taken because of the following {}: {}"
-        ).format(kind, permalink)
+        return ("\n\nThis action was taken because of the following {}: {}"
+                ).format(kind, permalink)
 
-    def __init__(self, message=None, reason=None, duration=None, *args,
+    def __init__(self,
+                 message=None,
+                 reason=None,
+                 duration=None,
+                 *args,
                  **kwargs):
         """Initialize the banner class."""
         super().__init__(*args, **kwargs)
@@ -191,9 +190,10 @@ class Banner(Subactor):
         message = self.message + self._footer(post)
         try:
             self.subreddit.banned.add(
-                post.author, duration=self.duration, ban_message=message,
-                ban_reason="{} - by {}".format(self.reason, mod)[:300]
-            )
+                post.author,
+                duration=self.duration,
+                ban_message=message,
+                ban_reason="{} - by {}".format(self.reason, mod)[:300])
         except prawcore.exceptions.RequestException as exception:
             logging.error("Failed to ban %s: %s", post.author, exception)
 
@@ -215,8 +215,7 @@ class Notifier(Subactor):
     """A class for replying to targets."""
 
     REQUIRED_TYPES = {'text': str}
-    VALID_TARGETS = [praw.models.Submission,
-                     praw.models.Comment]
+    VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
     def __init__(self, text, *args, **kwargs):
         """Initialie the notifier class."""
@@ -227,18 +226,16 @@ class Notifier(Subactor):
         """Return footer identifying bot as such."""
         base_reddit_url = self.subreddit._reddit.config.reddit_url
         sub_name = self.subreddit.display_name
-        modmail_link = (
-            "{base_url}/message/compose?to=%2Fr%2F{sub_name}"
-            "&message=Post%20in%20question:%20{url}"
-        ).format(base_url=base_reddit_url,
-                 sub_name=sub_name,
-                 url=urllib.parse.quote(url))
+        modmail_link = ("{base_url}/message/compose?to=%2Fr%2F{sub_name}"
+                        "&message=Post%20in%20question:%20{url}").format(
+                            base_url=base_reddit_url,
+                            sub_name=sub_name,
+                            url=urllib.parse.quote(url))
 
         return (
             "\n\n-----\n\nI am a bot. Please do not reply to this message, as "
             "it will go unread. Instead, [contact the moderators]({}) with "
-            "questions or comments."
-        ).format(modmail_link)
+            "questions or comments.").format(modmail_link)
 
     def action(self, post, mod, action_id):
         """Add, distinguish, and (if top-level) sticky reply to target."""
@@ -279,8 +276,7 @@ class Nuker(Subactor):
 
     """
 
-    VALID_TARGETS = [praw.models.Submission,
-                     praw.models.Comment]
+    VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
     def action(self, post, mod, action_id):
         """Remove the replies."""
@@ -308,10 +304,8 @@ class Nuker(Subactor):
 class ToolboxNoteAdder(Subactor):
     """A class to add Moderator Toolbox notes to the wiki."""
 
-    REQUIRED_TYPES = {'level': str,
-                      'text': str}
-    VALID_TARGETS = [praw.models.Submission,
-                     praw.models.Comment]
+    REQUIRED_TYPES = {'level': str, 'text': str}
+    VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
     EXPECTED_VERSION = 6
 
     @staticmethod
@@ -430,8 +424,7 @@ class WikiWatcher(Subactor):
     """A class for adding authors to AutoMod configuration lists."""
 
     REQUIRED_TYPES = {'placeholder': str}
-    VALID_TARGETS = [praw.models.Submission,
-                     praw.models.Comment]
+    VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
     def __init__(self, placeholder, *args, **kwargs):
         """Initialize the WikiWatcher class."""
@@ -461,11 +454,10 @@ class WikiWatcher(Subactor):
             return
 
         new_content = unescape(automod_config.content_md)
-        new_content = new_content.replace(
-            self.placeholder,
-            '{placeholder}, {names}'
-            .format(placeholder=self.placeholder, names=names)
-        )
+        new_content = new_content.replace(self.placeholder,
+                                          '{placeholder}, {names}'.format(
+                                              placeholder=self.placeholder,
+                                              names=names))
 
         try:
             automod_config.edit(new_content)

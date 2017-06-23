@@ -15,18 +15,17 @@ def update_sr_tables(cursor, subreddit):
         'INSERT OR IGNORE INTO subreddits (id, display_name) VALUES(?,?)',
         (subreddit_id, str(subreddit)))
     cursor.execute('UPDATE subreddits SET subscribers = ? '
-                   'WHERE id = ?',
-                   (subreddit.subscribers, subreddit_id))
+                   'WHERE id = ?', (subreddit.subscribers, subreddit_id))
 
     # Refresh listing of subreddits' moderators
     cursor.execute('DELETE FROM subreddit_moderator '
-                   'WHERE subreddit_id = ?', (subreddit_id,))
+                   'WHERE subreddit_id = ?', (subreddit_id, ))
 
     for moderator in subreddit.moderator:
         cursor.execute('INSERT OR IGNORE INTO users (username) '
-                       'VALUES(?)', (str(moderator),))
+                       'VALUES(?)', (str(moderator), ))
         cursor.execute('SELECT id FROM users WHERE username = ?',
-                       (str(moderator),))
+                       (str(moderator), ))
         moderator_id = cursor.fetchone()[0]
         cursor.execute('INSERT OR IGNORE INTO subreddit_moderator '
                        '(subreddit_id, moderator_id) VALUES(?,?)',
