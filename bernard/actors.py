@@ -354,6 +354,15 @@ class ToolboxNoteAdderLedger(Ledger):
         super().__init__(*args, **kwargs)
         self.notes = []
 
+    def _prepare_indices(self, items, attr):
+        indices = {a: b for b, a in enumerate(items)}
+        for note in self.notes:
+            value = getattr(note, attr)
+            if value not in indices:
+                indices[value] = len(items)
+                items.append(value)
+        return indices
+
     def _transform_page(self, content):
         usernotes_dict = json.loads(content)
         if usernotes_dict['ver'] != self.EXPECTED_VERSION:
@@ -362,16 +371,9 @@ class ToolboxNoteAdderLedger(Ledger):
             raise RuntimeError
 
         mod_list = usernotes_dict['constants']['users']
-        mod_indices = {a: b for b, a in enumerate(mod_list)}
+        mod_indices = self._prepare_indices(mod_list, 'mod')
         warning_list = usernotes_dict['constants']['warnings']
-        warning_indices = {a: b for b, a in enumerate(warning_list)}
-        for note in self.notes:
-            if note.mod not in mod_indices:
-                mod_indices[note.mod] = len(mod_list)
-                mod_list.append(note.mod)
-            if note.level not in warning_indices:
-                warning_indices[note.level] = len(warning_list)
-                warning_list.append(note.level)
+        warning_indices = self._prepare_indices(warning_list, 'level')
 
         data_dict = self.decompress_blob(usernotes_dict['blob'])
 
