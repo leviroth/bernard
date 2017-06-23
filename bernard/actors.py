@@ -5,12 +5,38 @@ import logging
 import time
 import urllib.parse
 import zlib
+from collections import namedtuple
 from xml.sax.saxutils import unescape
 
 import praw
 import prawcore
 
 from . import helpers
+
+
+def update(self, transformation, reason=None):
+    """Safely update a page based on its current content.
+
+    :param transformation: A function taking the previous content as its
+        sole parameter and returning the new content.
+    :param reason: (Optional) The reason for the revision.
+
+    """
+    current_revision = next(self.revisions(limit=1))
+    revision_id = current_revision['id']
+    content = current_revision['page'].content_md
+    new_content = transformation(content)
+    while True:
+        try:
+            self.edit(new_content, reason=reason, previous=revision_id)
+            return
+        except prawcore.exceptions.Conflict as conflict:
+            response_body = json.loads(conflict.response.content.decode())
+            new_content = transformation(response_body['newcontent'])
+            revision_id = response_body['newrevision']
+
+
+praw.models.WikiPage.update = update
 
 
 class Actor:
@@ -62,11 +88,6 @@ class Actor:
                 post.mod.approve()
 
             self.database.commit()
-
-    def after(self):
-        """Perform end-of-loop actions for each subactor."""
-        for subactor in self.subactors:
-            subactor.after()
 
     def remove_thing(self, thing, action_id):
         """Perform and log removal. Lock if thing is a submission."""
@@ -123,6 +144,18 @@ class Actor:
         return self.cursor.lastrowid
 
 
+class Ledger:  # pylint: disable=too-few-public-methods
+    """Abstract class for managing buffered updates."""
+
+    def __init__(self, subreddit):
+        """Initialize the Ledger class."""
+        self.subreddit = subreddit
+
+    def after(self):
+        """Perform actions on buffer."""
+        raise NotImplementedError
+
+
 class Subactor:
     """Base class for specific actions the bot can perform."""
 
@@ -146,10 +179,6 @@ class Subactor:
 
     def action(self, post, mod, action_id):
         """Perform actions when command is matched."""
-        pass
-
-    def after(self):
-        """Perform batch actions after processing all reports."""
         pass
 
 
@@ -301,11 +330,9 @@ class Nuker(Subactor):
                                   comment.name, exception)
 
 
-class ToolboxNoteAdder(Subactor):
-    """A class to add Moderator Toolbox notes to the wiki."""
+class ToolboxNoteAdderLedger(Ledger):
+    """A class to manage buffered Toolbox updates."""
 
-    REQUIRED_TYPES = {'level': str, 'text': str}
-    VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
     EXPECTED_VERSION = 6
 
     @staticmethod
@@ -323,16 +350,66 @@ class ToolboxNoteAdder(Subactor):
         unzipped = zlib.decompress(decoded)
         return json.loads(unzipped.decode())
 
-    @staticmethod
-    def fetch_notes_dict(wiki_page):
-        """Fetch usernotes dict from wiki.
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.notes = []
 
-        Uses network connection; may therefore raise
-        prawcore.exceptions.RequestException.
+    def _transform_page(self, content):
+        usernotes_dict = json.loads(content)
+        if usernotes_dict['ver'] != self.EXPECTED_VERSION:
+            logging.error("Unexpected toolbox notes version: %s",
+                          usernotes_dict['ver'])
+            raise RuntimeError
 
-        """
-        usernotes_json = wiki_page.content_md
-        return json.loads(usernotes_json)
+        mod_list = usernotes_dict['constants']['users']
+        mod_indices = {a: b for b, a in enumerate(mod_list)}
+        warning_list = usernotes_dict['constants']['warnings']
+        warning_indices = {a: b for b, a in enumerate(warning_list)}
+        for note in self.notes:
+            if note.mod not in mod_indices:
+                mod_indices[note.mod] = len(mod_list)
+                mod_list.append(note.mod)
+            if note.level not in warning_indices:
+                warning_indices[note.level] = len(warning_list)
+                warning_list.append(note.level)
+
+        data_dict = self.decompress_blob(usernotes_dict['blob'])
+
+        for note in self.notes:
+            serializable_note = note.to_serializable(mod_indices,
+                                                     warning_indices)
+
+            author_notes = data_dict.setdefault(note.author, {'ns': []})
+            author_notes["ns"].insert(0, serializable_note)
+
+        usernotes_dict['blob'] = self.compress_blob(data_dict)
+        return json.dumps(usernotes_dict)
+
+    def add(self, note):
+        """Add a note to the buffer."""
+        self.notes.append(note)
+
+    def after(self):
+        """Add queued reports to the wiki."""
+        if not self.notes:
+            return
+
+        wiki_page = self.subreddit.wiki['usernotes']
+        try:
+            wiki_page.update(self._transform_page)
+        except prawcore.exceptions.RequestException as exception:
+            logging.error("Failed to load toolbox usernotes: %s", exception)
+            return
+        else:
+            self.notes.clear()
+
+
+class ToolboxNoteAdder(Subactor):
+    """A class to add Moderator Toolbox notes to the wiki."""
+
+    LEDGER = ToolboxNoteAdderLedger
+    REQUIRED_TYPES = {'level': str, 'text': str}
+    VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
     @staticmethod
     def toolbox_link_string(thing):
@@ -343,94 +420,85 @@ class ToolboxNoteAdder(Subactor):
             return 'l,{submission_id},{comment_id}'.format(
                 submission_id=thing.submission.id, comment_id=thing.id)
 
-    def __init__(self, text, level, *args, **kwargs):
+    def __init__(self, text, level, ledger, *args, **kwargs):
         """Initialize the ToolboxNoteAdder class."""
         super().__init__(*args, **kwargs)
         self.text = text
         self.level = level
-        self.to_add = []
+        self.ledger = ledger
 
     def action(self, post, mod, action_id):
         """Enqueue a note to add after pass through the reports."""
-        author = str(post.author)
-        now = int(time.time())
-        link = self.toolbox_link_string(post)
-        self.to_add.append((author, link, now, mod))
+        self.ledger.add(
+            BufferedNote(
+                str(post.author), self.level,
+                self.toolbox_link_string(post), mod, self.text,
+                int(time.time())))
 
-    def after(self):
-        """Add queued reports to the wiki."""
-        if not self.to_add:
-            return
 
-        wiki_page = self.subreddit.wiki['usernotes']
-        try:
-            usernotes_dict = self.fetch_notes_dict(wiki_page)
-        except prawcore.exceptions.RequestException as exception:
-            logging.error("Failed to load toolbox usernotes: %s", exception)
-            return
+class BufferedNote(
+        namedtuple('BufferedNote', 'author level link mod text time')):
+    """A class for buffered Toolbox usernotes."""
+    __slots__ = ()
 
-        if usernotes_dict['ver'] != self.EXPECTED_VERSION:
-            return
-
-        # Mods and warning levels are stored in these lists, but referenced in
-        # notes via their indices. Modifications to these lists are persisted
-        # on the wiki.
-        mod_list = usernotes_dict['constants']['users']
-        mod_indices = {a: b for b, a in enumerate(mod_list)}
-        warning_list = usernotes_dict['constants']['warnings']
-        warning_indices = {a: b for b, a in enumerate(warning_list)}
-        if self.level not in warning_indices:
-            warning_indices[self.level] = len(warning_list)
-            warning_list.append(self.level)
-
-        data_dict = self.decompress_blob(usernotes_dict['blob'])
-
-        for author, link, timestamp, mod in self.to_add:
-            if mod not in mod_indices:
-                mod_indices[mod] = len(mod_list)
-                mod_list.append(mod)
-
-            note = self.build_note(timestamp, mod_indices[mod], link,
-                                   warning_indices[self.level])
-
-            if author not in data_dict:
-                data_dict[author] = {"ns": []}
-
-            data_dict[author]["ns"].insert(0, note)
-
-        usernotes_dict['blob'] = self.compress_blob(data_dict)
-        serialized_page = json.dumps(usernotes_dict)
-
-        try:
-            wiki_page.edit(serialized_page)
-        except prawcore.exceptions.RequestException as exception:
-            logging.error("Failed to update automod config %s", exception)
-            return
-        else:
-            self.to_add = []
-
-    def build_note(self, timestamp, mod_index, link, warning_index):
+    def to_serializable(self, mod_indices, warning_indices):
         """Return a dict of a mod note, ready for insertion in the wiki."""
         return {
             "n": self.text,
-            "t": timestamp,
-            "m": mod_index,
-            "l": link,
-            "w": warning_index
+            "t": self.time,
+            "m": mod_indices[self.mod],
+            "l": self.link,
+            "w": warning_indices[self.level]
         }
+
+
+class WikiWatcherLedger(Ledger):
+    """A class to manage buffered AutoMod updates."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.placeholder_dict = {}
+
+    def _transform_page(self, content):
+        content = unescape(content)
+        for placeholder, buffer in self.placeholder_dict.items():
+            new_text = ", ".join([placeholder] + buffer)
+            content = content.replace(placeholder, new_text)
+        return content
+
+    def add(self, placeholder, author):
+        """Add author to the placeholder's buffer."""
+        buffer = self.placeholder_dict.setdefault(placeholder, [])
+        buffer.append(author)
+
+    def after(self):
+        """Add accumulated list of users to AutoMod config."""
+        if not any(self.placeholder_dict.values()):
+            return
+
+        automod_config = self.subreddit.wiki['config/automoderator']
+
+        try:
+            automod_config.update(self._transform_page)
+        except prawcore.exceptions.RequestException as exception:
+            logging.error("Failed to update automod config %s", exception)
+        else:
+            for buffer in self.placeholder_dict.values():
+                buffer.clear()
 
 
 class WikiWatcher(Subactor):
     """A class for adding authors to AutoMod configuration lists."""
 
+    LEDGER = WikiWatcherLedger
     REQUIRED_TYPES = {'placeholder': str}
     VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
-    def __init__(self, placeholder, *args, **kwargs):
+    def __init__(self, placeholder, ledger, *args, **kwargs):
         """Initialize the WikiWatcher class."""
         super().__init__(*args, **kwargs)
         self.placeholder = placeholder
-        self.to_add = []
+        self.ledger = ledger
 
     def action(self, post, mod, action_id):
         """Add post author to buffer for update.
@@ -438,31 +506,4 @@ class WikiWatcher(Subactor):
         Actual wiki update performed in WikiWatcher.after.
 
         """
-        self.to_add.append(str(post.author))
-
-    def after(self):
-        """Add accumulated list of users to AutoMod config."""
-        if not self.to_add:
-            return
-
-        names = ', '.join(self.to_add)
-
-        try:
-            automod_config = self.subreddit.wiki['config/automoderator']
-        except prawcore.exceptions.RequestException as exception:
-            logging.error("Failed to load automod config: %s", exception)
-            return
-
-        new_content = unescape(automod_config.content_md)
-        new_content = new_content.replace(self.placeholder,
-                                          '{placeholder}, {names}'.format(
-                                              placeholder=self.placeholder,
-                                              names=names))
-
-        try:
-            automod_config.edit(new_content)
-        except prawcore.exceptions.RequestException as exception:
-            logging.error("Failed to update automod config %s", exception)
-            return
-        else:
-            self.to_add = []
+        self.ledger.add(self.placeholder, str(post.author))

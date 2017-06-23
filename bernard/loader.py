@@ -17,7 +17,7 @@ _SUBACTOR_REGISTRY = {
     'notify': actors.Notifier,
     'nuke': actors.Nuker,
     'usernote': actors.ToolboxNoteAdder,
-    'wikiwatch': actors.WikiWatcher
+    'wikiwatch': actors.WikiWatcher,
 }
 
 
@@ -28,7 +28,7 @@ def build_regex(commands):
     return re.compile("^(" + joined_commands + ")$", re.IGNORECASE)
 
 
-def load_subreddit_rules(subreddit, rules, header, database):
+def load_subreddit_rules(subreddit, rules, header, ledger_builder, database):
     """Create a remover/notifier for each post rule."""
     post_rules = [
         rule for rule in rules
@@ -50,6 +50,7 @@ def load_subreddit_rules(subreddit, rules, header, database):
             actors.ToolboxNoteAdder(
                 text="Post removed (Rule {})".format(i),
                 level="abusewarn",
+                ledger=ledger_builder.get(actors.ToolboxNoteAdderLedger),
                 subreddit=subreddit,
                 database=database)
         ]
@@ -69,7 +70,7 @@ def validate_subactor_config(subactor_class, params, target_types):
     subactor_class.validate_params(params)
 
 
-def load_comment_rules(subreddit, rules, database):
+def load_comment_rules(subreddit, rules, ledger_builder, database):
     """Create a nuker/warner for each comment rule."""
     header = "Please bear in mind our commenting rules:"
     comment_rules = [rule for rule in rules if rule['kind'] == 'comment']
@@ -89,6 +90,7 @@ def load_comment_rules(subreddit, rules, database):
             actors.ToolboxNoteAdder(
                 text="Post removed (Rule {})".format(i),
                 level="abusewarn",
+                ledger=ledger_builder.get(actors.ToolboxNoteAdderLedger),
                 subreddit=subreddit,
                 database=database)
         ]
@@ -99,6 +101,26 @@ def load_comment_rules(subreddit, rules, database):
                              i), database, subreddit))
 
     return our_rules
+
+
+class LedgerBuilder:
+    """Provide ledgers for a subreddit configuration."""
+    def __init__(self, subreddit):
+        self.subreddit = subreddit
+        self._ledgers = {}
+
+    def get(self, cls):
+        """Return a shared ledger instance of the given class."""
+        ledger = self._ledgers.get(cls)
+        if ledger is None:
+            ledger = cls(self.subreddit)
+            self._ledgers[cls] = ledger
+        return ledger
+
+    @property
+    def ledgers(self):
+        """Return a list of all ledger instances."""
+        return list(self._ledgers.values())
 
 
 class YAMLLoader:
@@ -119,13 +141,13 @@ class YAMLLoader:
             for subreddit_config in config['subreddits']
         ]
 
-    def parse_actor_config(self, actor_config, subreddit):
+    def parse_actor_config(self, actor_config, subreddit, ledger_builder):
         """Return an Action corresponding to actor_config."""
         command = build_regex(actor_config['trigger'])
         target_types = [_TARGET_MAP[x] for x in actor_config['types']]
         subactors = [
             self.parse_subactor_config(subactor_config, subreddit,
-                                       target_types)
+                                       ledger_builder, target_types)
             for subactor_config in actor_config['actions']
         ]
 
@@ -134,19 +156,23 @@ class YAMLLoader:
                             actor_config.get('details'), self.database,
                             subreddit)
 
-    def parse_subactor_config(self, subactor_config, subreddit, target_types):
+    def parse_subactor_config(self, subactor_config, subreddit, ledger_builder,
+                              target_types):
         """Parse subactor configuration and return a subactor."""
         subactor_class = _SUBACTOR_REGISTRY[subactor_config['action']]
         params = subactor_config.get('params', {})
         validate_subactor_config(subactor_class, params, target_types)
+        if hasattr(subactor_class, 'LEDGER'):
+            params['ledger'] = ledger_builder.get(subactor_class.LEDGER)
         return subactor_class(
             database=self.database, subreddit=subreddit, **params)
 
     def parse_subreddit_config(self, subreddit_config):
         """Parse subreddit configuration and return a Browser."""
         subreddit = self.reddit.subreddit(subreddit_config['name'])
+        ledger_builder = LedgerBuilder(subreddit)
         browser_actors = [
-            self.parse_actor_config(actor_config, subreddit)
+            self.parse_actor_config(actor_config, subreddit, ledger_builder)
             for actor_config in subreddit_config['rules']
         ]
         header = subreddit_config.get('header')
@@ -157,13 +183,15 @@ class YAMLLoader:
         if subreddit_config.get('default_post_actions'):
             browser_actors.extend(
                 load_subreddit_rules(subreddit, sub_rules, header,
-                                     self.database))
+                                     ledger_builder, self.database))
 
         if subreddit_config.get('default_comment_actions'):
             browser_actors.extend(
-                load_comment_rules(subreddit, sub_rules, self.database))
+                load_comment_rules(subreddit, sub_rules, ledger_builder,
+                                   self.database))
 
         helpers.update_sr_tables(self.database.cursor(), subreddit)
         self.database.commit()
 
-        return browser.Browser(browser_actors, subreddit, self.database)
+        return browser.Browser(browser_actors, ledger_builder.ledgers,
+                               subreddit, self.database)

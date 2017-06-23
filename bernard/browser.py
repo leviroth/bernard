@@ -7,9 +7,10 @@ import prawcore
 class Browser:
     """A class to fetch reports and dispatch to actors."""
 
-    def __init__(self, actors, subreddit, database):
+    def __init__(self, actors, ledgers, subreddit, database):
         """Initialize the Browser class."""
         self.actors = actors
+        self.ledgers = ledgers
         self.subreddit = subreddit
         self.database = database
 
@@ -35,5 +36,5 @@ class Browser:
         """Fetch reports and dispatch to actors."""
         for command, mod, post in self.reports():
             self.check_command(command, mod, post)
-        for actor in self.actors:
-            actor.after()
+        for ledger in self.ledgers:
+            ledger.after()
