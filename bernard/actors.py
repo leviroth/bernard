@@ -20,8 +20,10 @@ class Actor:
     actions, and logging to database.
 
     """
+
     def __init__(self, trigger, targets, remove, subactors, action_name,
                  action_details, database, subreddit):
+        """Initialize the Actor class."""
         self.trigger = trigger
         self.targets = targets
         self.remove = remove
@@ -32,13 +34,13 @@ class Actor:
         self.cursor = database.cursor()
         self.subreddit = subreddit
 
-    def match(self, command, post):
-        "Return true if command matches and post is the right type of thing."
+    def match(self, command, thing):
+        """Return true if command matches and thing is the right type."""
         return self.trigger.match(command) \
-            and any(isinstance(post, target) for target in self.targets)
+            and any(isinstance(thing, target) for target in self.targets)
 
     def parse(self, command, mod, post):
-        "Execute requested actions if report matches command."
+        """Execute requested actions if report matches command."""
         if self.match(command, post):
             # Only act once on a given thing
             target_type, target_id = helpers.deserialize_thing_id(
@@ -62,12 +64,12 @@ class Actor:
             self.database.commit()
 
     def after(self):
-        "Perform end-of-loop actions for each subactor."
+        """Perform end-of-loop actions for each subactor."""
         for subactor in self.subactors:
             subactor.after()
 
     def remove_thing(self, thing, action_id):
-        "Perform and log removal. Lock if thing is a submission."
+        """Perform and log removal. Lock if thing is a submission."""
         try:
             thing.mod.remove()
         except prawcore.exceptions.RequestException as exception:
@@ -83,7 +85,7 @@ class Actor:
                             (action_id,))
 
     def log_action(self, target, moderator):
-        "Log action in database and console. Return database row id."
+        """Log action in database and console. Return database row id."""
         target_type, target_id = helpers.deserialize_thing_id(target.fullname)
         action_summary = self.action_name
         action_details = self.action_details
@@ -123,7 +125,8 @@ class Actor:
 
 
 class Subactor:
-    "Base class for specific actions the bot can perform."
+    """Base class for specific actions the bot can perform."""
+
     REQUIRED_TYPES = {}
     VALID_TARGETS = []
 
@@ -137,21 +140,23 @@ class Subactor:
                                    .format(param, required_type))
 
     def __init__(self, database, subreddit):
+        """Initialize the Subactor class."""
         self.database = database
         self.cursor = database.cursor()
         self.subreddit = subreddit
 
     def action(self, post, mod, action_id):
-        "Called immediately when a command is matched."
+        """Perform actions when command is matched."""
         pass
 
     def after(self):
-        "Called after checking all reports to enable batch actions."
+        """Perform batch actions after processing all reports."""
         pass
 
 
 class Banner(Subactor):
-    "A class to ban authors."
+    """A class to ban authors."""
+
     REQUIRED_TYPES = {'message': str,
                       'reason': str,
                       'duration': int}
@@ -160,7 +165,7 @@ class Banner(Subactor):
 
     @staticmethod
     def _footer(target):
-        "Return footer identifying the target that led to the ban."
+        """Return footer identifying the target that led to the ban."""
         if isinstance(target, praw.models.Comment):
             # praw.models.Comment.permalink is a method
             permalink = target.permalink()
@@ -175,13 +180,14 @@ class Banner(Subactor):
 
     def __init__(self, message=None, reason=None, duration=None, *args,
                  **kwargs):
+        """Initialize the banner class."""
         super().__init__(*args, **kwargs)
         self.message = message
         self.reason = reason
         self.duration = duration
 
     def action(self, post, mod, action_id):
-        "Ban author of post."
+        """Ban author of post."""
         message = self.message + self._footer(post)
         try:
             self.subreddit.banned.add(
@@ -194,9 +200,11 @@ class Banner(Subactor):
 
 class Locker(Subactor):
     """Locks posts, without necessarily removing them."""
+
     VALID_TARGETS = [praw.models.Submission]
 
     def action(self, post, mod, action_id):
+        """Lock the post."""
         try:
             post.mod.lock()
         except prawcore.exceptions.RequestException as exception:
@@ -204,17 +212,19 @@ class Locker(Subactor):
 
 
 class Notifier(Subactor):
-    "A class for replying to targets."
+    """A class for replying to targets."""
+
     REQUIRED_TYPES = {'text': str}
     VALID_TARGETS = [praw.models.Submission,
                      praw.models.Comment]
 
     def __init__(self, text, *args, **kwargs):
+        """Initialie the notifier class."""
         super().__init__(*args, **kwargs)
         self.text = text
 
     def _footer(self, url):
-        "Return footer identifying bot as such and directing users to modmail."
+        """Return footer identifying bot as such."""
         base_reddit_url = self.subreddit._reddit.config.reddit_url
         sub_name = self.subreddit.display_name
         modmail_link = (
@@ -231,7 +241,7 @@ class Notifier(Subactor):
         ).format(modmail_link)
 
     def action(self, post, mod, action_id):
-        "Add, distinguish, and (if top-level) sticky reply to target."
+        """Add, distinguish, and (if top-level) sticky reply to target."""
         permalink = post.permalink
         # praw.models.Comment.permalink is a method
         if isinstance(post, praw.models.Comment):
@@ -255,7 +265,7 @@ class Notifier(Subactor):
                           exception)
 
     def log_notification(self, comment, action_id):
-        "Log notification, associating comment id with action."
+        """Log notification, associating comment id with action."""
         _, comment_id = helpers.deserialize_thing_id(comment.fullname)
         self.cursor.execute('INSERT INTO notifications (comment_id, '
                             'action_id) VALUES(?,?)', (comment_id, action_id))
@@ -268,11 +278,12 @@ class Nuker(Subactor):
     for backwards compatibility.
 
     """
+
     VALID_TARGETS = [praw.models.Submission,
                      praw.models.Comment]
 
     def action(self, post, mod, action_id):
-        "Remove the replies."
+        """Remove the replies."""
         if isinstance(post, praw.models.Submission):
             return
 
@@ -296,6 +307,7 @@ class Nuker(Subactor):
 
 class ToolboxNoteAdder(Subactor):
     """A class to add Moderator Toolbox notes to the wiki."""
+
     REQUIRED_TYPES = {'level': str,
                       'text': str}
     VALID_TARGETS = [praw.models.Submission,
@@ -338,6 +350,7 @@ class ToolboxNoteAdder(Subactor):
                 submission_id=thing.submission.id, comment_id=thing.id)
 
     def __init__(self, text, level, *args, **kwargs):
+        """Initialize the ToolboxNoteAdder class."""
         super().__init__(*args, **kwargs)
         self.text = text
         self.level = level
@@ -414,25 +427,28 @@ class ToolboxNoteAdder(Subactor):
 
 
 class WikiWatcher(Subactor):
-    "A class for adding authors to AutoMod configuration lists."
+    """A class for adding authors to AutoMod configuration lists."""
+
     REQUIRED_TYPES = {'placeholder': str}
     VALID_TARGETS = [praw.models.Submission,
                      praw.models.Comment]
 
     def __init__(self, placeholder, *args, **kwargs):
+        """Initialize the WikiWatcher class."""
         super().__init__(*args, **kwargs)
         self.placeholder = placeholder
         self.to_add = []
 
     def action(self, post, mod, action_id):
-        """Add author to local list of users. Actual wiki update performed in
-        WikiWatcher.after.
+        """Add post author to buffer for update.
+
+        Actual wiki update performed in WikiWatcher.after.
 
         """
         self.to_add.append(str(post.author))
 
     def after(self):
-        "Add accumulated list of users to AutoMod config."
+        """Add accumulated list of users to AutoMod config."""
         if not self.to_add:
             return
 

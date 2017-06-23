@@ -22,7 +22,7 @@ _SUBACTOR_REGISTRY = {
 
 
 def build_regex(commands):
-    "Turn commands iterable into a case-insensitive, 'inclusive-or' regex."
+    """Turn commands iterable into a case-insensitive, 'inclusive-or' regex."""
     escaped_commands = (re.escape(str(command)) for command in commands)
     joined_commands = "|".join(escaped_commands)
     return re.compile("^(" + joined_commands + ")$",
@@ -30,7 +30,7 @@ def build_regex(commands):
 
 
 def load_subreddit_rules(subreddit, rules, header, database):
-    "Create a remover/notifier for each post rule."
+    """Create a remover/notifier for each post rule."""
     post_rules = [rule for rule in rules
                   if rule['kind'] == 'link' or rule['kind'] == 'all']
     our_rules = []
@@ -128,7 +128,9 @@ def load_comment_rules(subreddit, rules, database):
 
 class YAMLLoader:
     """Loader for YAML files."""
+
     def __init__(self, database, reddit):
+        """Initialize the YAMLLoader class."""
         self.database = database
         self.reddit = reddit
 

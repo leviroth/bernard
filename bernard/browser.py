@@ -5,19 +5,21 @@ import prawcore
 
 
 class Browser:
-    "A class to fetch reports and dispatch to actors."
+    """A class to fetch reports and dispatch to actors."""
+
     def __init__(self, actors, subreddit, database):
+        """Initialize the Browser class."""
         self.actors = actors
         self.subreddit = subreddit
         self.database = database
 
     def check_command(self, command, mod, post):
-        "Check if any actor matches this report."
+        """Check if any actor matches this report."""
         for actor in self.actors:
             actor.parse(command, mod, post)
 
     def reports(self):
-        """Generator for mod reports in a subreddit.
+        """Generate mod reports for a subreddit.
 
         Yields tuple of report, mod name, and target.
 
@@ -30,7 +32,7 @@ class Browser:
             logging.error("Error fetching reports: %s", exception)
 
     def run(self):
-        "Fetch reports and dispatch to actors."
+        """Fetch reports and dispatch to actors."""
         for command, mod, post in self.reports():
             self.check_command(command, mod, post)
         for actor in self.actors:
