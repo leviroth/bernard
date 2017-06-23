@@ -30,7 +30,8 @@ CREATE TABLE actions(
 
 CREATE TABLE subreddits(
   id INTEGER PRIMARY KEY,
-  display_name TEXT UNIQUE
+  display_name TEXT UNIQUE,
+  subscribers INT
 );
 
 CREATE TABLE subreddit_moderator(
