@@ -150,7 +150,7 @@ class YAMLLoader:
             for actor_config in subreddit_config['rules']
         ]
         header = subreddit_config.get('header')
-        sub_rules = subreddit.rules()
+        sub_rules = subreddit.rules()['rules']
 
         # Add remover/notifier for subreddit rules and, if desired,
         # nuker/notifier for comment rules.
