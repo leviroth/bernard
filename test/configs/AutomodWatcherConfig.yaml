@@ -1,0 +1,14 @@
+subreddits:
+- name: thirdrealm
+  default_post_actions: false
+  default_comment_actions: false
+  rules:
+  - name: "Watched"
+    details: "Suspected of being a spy"
+    trigger: [watch]
+    types: [post, comment]
+    remove: false
+    actions:
+      - action: wikiwatch
+        params:
+          placeholder: 'do!not!remove!watchlist'

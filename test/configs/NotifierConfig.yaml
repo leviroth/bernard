@@ -1,0 +1,14 @@
+subreddits:
+- name: thirdrealm
+  default_post_actions: false
+  default_comment_actions: false
+  rules:
+  - name: "Comment rule warning"
+    details: "Testing"
+    trigger: [w]
+    types: [post]
+    remove: false
+    actions:
+    - action: notify
+      params:
+        text: "Please keep our rules in mind!"

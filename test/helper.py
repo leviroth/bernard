@@ -60,9 +60,8 @@ class BJOTest(unittest.TestCase):
         self.db.row_factory = sqlite3.Row
         self.cur = self.db.cursor()
         with open('create_tables.sql') as f:
-            commands = f.read().split(';')
-            for command in commands:
-                self.cur.execute(command)
+            command = f.read()
+        self.db.executescript(command)
 
     def betamax_configure(self):
         http = self.r._core._requestor._http
