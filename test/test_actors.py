@@ -2,7 +2,6 @@ import praw
 import re
 from .helper import BJOTest
 from bernard import actors
-from mock import patch
 
 
 class TestActor(BJOTest):
@@ -31,8 +30,7 @@ class TestActor(BJOTest):
                 'TestActor.test_match__incorrect_type'):
             self.assertFalse(self.actor.match('foo', post))
 
-    @patch('time.sleep', return_value=None)
-    def test_parse(self, _):
+    def test_parse(self):
         post = self.r.submission(id='5e7w80')
         with self.recorder.use_cassette('TestActor.test_parse'):
             self.actor.parse('foo', 'TGB', post)
@@ -50,8 +48,7 @@ class TestActor(BJOTest):
 
 
 class TestBanner(BJOTest):
-    @patch('time.sleep', return_value=None)
-    def test_action(self, _):
+    def test_action(self):
         actor = actors.Banner("You banned", "testing purposes", 4, self.db,
                               self.subreddit)
         post = self.r.submission(id='5e7wc7')
@@ -61,8 +58,7 @@ class TestBanner(BJOTest):
 
 
 class TestNotifier(BJOTest):
-    @patch('time.sleep', return_value=None)
-    def test_action(self, _):
+    def test_action(self):
         actor = actors.Notifier("sample_text", self.db, self.subreddit)
         post = self.r.submission(id='5kgajm')
         with self.recorder.use_cassette('TestNotifier.test_action'):
@@ -73,8 +69,7 @@ class TestNotifier(BJOTest):
 
 
 class TestNuker(BJOTest):
-    @patch('time.sleep', return_value=None)
-    def test_action(self, _):
+    def test_action(self):
         actor = actors.Nuker(self.db, self.subreddit)
         post = self.r.comment(id='dbnpgmz')
         with self.recorder.use_cassette('TestNuker.test_action'):
@@ -93,8 +88,7 @@ class TestWikiWatcher(BJOTest):
             self.assertEqual(1, len(actor.to_add))
             self.assertEqual('BJO_test_mod', actor.to_add[0])
 
-    @patch('time.sleep', return_value=None)
-    def test_after(self, _):
+    def test_after(self):
         actor = actors.WikiWatcher('test!placeholder', self.db, self.subreddit)
         actor.to_add.append('BJO_test_mod')
         with self.recorder.use_cassette('TestWikiWatcher.test_after'):
