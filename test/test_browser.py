@@ -17,12 +17,11 @@ class TestBrowser(BJOTest):
             action_name="Remove",
             action_details=None,
             database=self.db,
-            subreddit=self.subreddit
-        )
-        self.browser = browser.Browser([self.actor], self.subreddit, self.db)
+            subreddit=self.subreddit)
+        self.browser = browser.Browser([self.actor], [], self.subreddit,
+                                       self.db)
 
-    @unittest.mock.patch('time.sleep', return_value=None)
-    def test_run(self, _):
+    def test_run(self):
         with self.recorder.use_cassette('TestBrowser.test_run'):
             self.browser.run()
             self.assertTrue(self.subactor.action.called)

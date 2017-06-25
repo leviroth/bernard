@@ -21,7 +21,7 @@ def update_sr_tables(cursor, subreddit):
     cursor.execute('DELETE FROM subreddit_moderator '
                    'WHERE subreddit_id = ?', (subreddit_id, ))
 
-    for moderator in subreddit.moderator:
+    for moderator in subreddit.moderator():
         cursor.execute('INSERT OR IGNORE INTO users (username) '
                        'VALUES(?)', (str(moderator), ))
         cursor.execute('SELECT id FROM users WHERE username = ?',

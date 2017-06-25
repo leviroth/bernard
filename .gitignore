@@ -1,5 +1,7 @@
 *.pyc
+*.egg-info/
 .cache/
+.eggs/
 .coverage
 config.json
 config.yaml

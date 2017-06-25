@@ -35,12 +35,16 @@ setup(
 
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
 
-    install_requires=['praw >=4.2, <5.0',
+    install_requires=['praw == 5.0.0dev0',
                       'pyyaml >=3.12, <4.0'],
+    dependency_links=['https://github.com/praw-dev/praw/archive/'
+                      'aabef34146ca23410322d1ccea62fd747afa405d.zip'
+                      '#egg=praw-5.0.0dev0'],
 
-    extras_require={
-        'test': ['betamax >=0.8, <0.9',
-                 'betamax-serializers >=0.2, <0.3',
-                 'mock >=2.0.0, <3.0'],
-    },
+    setup_requires=['pytest-runner >=2.1'],
+    tests_require=['betamax >=0.8, <0.9',
+                   'betamax-matchers >=0.3.0, <0.4',
+                   'betamax-serializers >=0.2, <0.3',
+                   'pytest >=2.7.3'],
+    test_suite='pytest',
 )

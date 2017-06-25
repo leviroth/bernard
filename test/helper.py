@@ -11,11 +11,7 @@ import sys
 sys.path.append('bernard/')
 
 
-def _sleep(*args):
-    raise Exception('Call to sleep')
-
-
-time.sleep = _sleep
+time.sleep = lambda _: None
 
 
 def b64_string(input_string):
@@ -61,11 +57,11 @@ class BJOTest(unittest.TestCase):
 
         self.subreddit = self.r.subreddit('thirdrealm')
         self.db = sqlite3.connect(':memory:')
+        self.db.row_factory = sqlite3.Row
         self.cur = self.db.cursor()
         with open('create_tables.sql') as f:
-            commands = f.read().split(';')
-            for command in commands:
-                self.cur.execute(command)
+            command = f.read()
+        self.db.executescript(command)
 
     def betamax_configure(self):
         http = self.r._core._requestor._http
