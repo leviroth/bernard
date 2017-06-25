@@ -11,13 +11,13 @@ _TARGET_MAP = {
     "post": praw.models.Submission,
 }
 
-_SUBACTOR_REGISTRY = {
+_ACTOR_REGISTRY = {
     'ban': actors.Banner,
     'lock': actors.Locker,
     'notify': actors.Notifier,
     'nuke': actors.Nuker,
     'usernote': actors.ToolboxNoteAdder,
-    'wikiwatch': actors.WikiWatcher,
+    'automodwatch': actors.AutomodWatcher,
 }
 
 
@@ -28,7 +28,8 @@ def build_regex(commands):
     return re.compile("^(" + joined_commands + ")$", re.IGNORECASE)
 
 
-def load_subreddit_rules(subreddit, rules, header, ledger_builder, database):
+def load_subreddit_rules(subreddit, rules, header, action_buffer_builder,
+                         database):
     """Create a remover/notifier for each post rule."""
     post_rules = [
         rule for rule in rules
@@ -50,27 +51,28 @@ def load_subreddit_rules(subreddit, rules, header, ledger_builder, database):
             actors.ToolboxNoteAdder(
                 text="Post removed (Rule {})".format(i),
                 level="abusewarn",
-                ledger=ledger_builder.get(actors.ToolboxNoteAdderLedger),
+                buffer=action_buffer_builder.get(
+                    actors.ToolboxNoteAdderActionBuffer),
                 subreddit=subreddit,
                 database=database)
         ]
 
         our_rules.append(
-            actors.Actor(command, [praw.models.Submission], True, actions,
-                         'Removed', 'Rule {}'.format(i), database, subreddit))
+            actors.Rule(command, [praw.models.Submission], True, actions,
+                        'Removed', 'Rule {}'.format(i), database, subreddit))
 
     return our_rules
 
 
-def validate_subactor_config(subactor_class, params, target_types):
-    """Raise exception if subactor configuration is invalid."""
-    if not set(target_types).issubset(subactor_class.VALID_TARGETS):
+def validate_actor_config(actor_class, params, target_types):
+    """Raise exception if actor configuration is invalid."""
+    if not set(target_types).issubset(actor_class.VALID_TARGETS):
         raise RuntimeError("{cls} does not support all of {targets}"
-                           .format(cls=subactor_class, targets=target_types))
-    subactor_class.validate_params(params)
+                           .format(cls=actor_class, targets=target_types))
+    actor_class.validate_params(params)
 
 
-def load_comment_rules(subreddit, rules, ledger_builder, database):
+def load_comment_rules(subreddit, rules, action_buffer_builder, database):
     """Create a nuker/warner for each comment rule."""
     header = "Please bear in mind our commenting rules:"
     comment_rules = [rule for rule in rules if rule['kind'] == 'comment']
@@ -90,39 +92,39 @@ def load_comment_rules(subreddit, rules, ledger_builder, database):
             actors.ToolboxNoteAdder(
                 text="Post removed (Rule {})".format(i),
                 level="abusewarn",
-                ledger=ledger_builder.get(actors.ToolboxNoteAdderLedger),
+                buffer=action_buffer_builder.get(
+                    actors.ToolboxNoteAdderActionBuffer),
                 subreddit=subreddit,
                 database=database)
         ]
 
         our_rules.append(
-            actors.Actor(command, [praw.models.Comment], True, actions,
-                         'Nuked', 'Comment Rule {}'.format(
-                             i), database, subreddit))
+            actors.Rule(command, [praw.models.Comment], True, actions, 'Nuked',
+                        'Comment Rule {}'.format(i), database, subreddit))
 
     return our_rules
 
 
-class LedgerBuilder:
-    """Provide ledgers for a subreddit configuration."""
+class ActionBufferBuilder:
+    """Provide ActionBuffers for a subreddit configuration."""
 
     def __init__(self, subreddit):
-        """Initialize the ledger class."""
+        """Initialize the ActionBufferBuilder class."""
         self.subreddit = subreddit
-        self._ledgers = {}
+        self._buffers = {}
 
     def get(self, cls):
-        """Return a shared ledger instance of the given class."""
-        ledger = self._ledgers.get(cls)
-        if ledger is None:
-            ledger = cls(self.subreddit)
-            self._ledgers[cls] = ledger
-        return ledger
+        """Return a shared ActionBuffer instance of the given class."""
+        buffer = self._buffers.get(cls)
+        if buffer is None:
+            buffer = cls(self.subreddit)
+            self._buffers[cls] = buffer
+        return buffer
 
     @property
-    def ledgers(self):
-        """Return a list of all ledger instances."""
-        return list(self._ledgers.values())
+    def buffers(self):
+        """Return a list of all buffer instances."""
+        return list(self._buffers.values())
 
 
 class YAMLLoader:
@@ -143,57 +145,60 @@ class YAMLLoader:
             for subreddit_config in config['subreddits']
         ]
 
-    def parse_actor_config(self, actor_config, subreddit, ledger_builder):
-        """Return an Action corresponding to actor_config."""
-        command = build_regex(actor_config['trigger'])
-        target_types = [_TARGET_MAP[x] for x in actor_config['types']]
-        subactors = [
-            self.parse_subactor_config(subactor_config, subreddit,
-                                       ledger_builder, target_types)
-            for subactor_config in actor_config.get('actions', [])
+    def parse_rule_config(self, rule_config, subreddit, action_buffer_builder):
+        """Return a Rule corresponding to rule_config."""
+        command = build_regex(rule_config['trigger'])
+        target_types = [_TARGET_MAP[x] for x in rule_config['types']]
+        our_actors = [
+            self.parse_actor_config(actor_config, subreddit,
+                                    action_buffer_builder, target_types)
+            for actor_config in rule_config.get('actions', [])
         ]
 
-        return actors.Actor(command, target_types, actor_config['remove'],
-                            subactors, actor_config['name'],
-                            actor_config.get('details'), self.database,
-                            subreddit)
+        return actors.Rule(command, target_types, rule_config['remove'],
+                           our_actors, rule_config['name'],
+                           rule_config.get('details'), self.database,
+                           subreddit)
 
-    def parse_subactor_config(self, subactor_config, subreddit, ledger_builder,
-                              target_types):
-        """Parse subactor configuration and return a subactor."""
-        subactor_class = _SUBACTOR_REGISTRY[subactor_config['action']]
-        params = subactor_config.get('params', {})
-        validate_subactor_config(subactor_class, params, target_types)
-        if hasattr(subactor_class, 'LEDGER'):
-            params['ledger'] = ledger_builder.get(subactor_class.LEDGER)
-        return subactor_class(
+    def parse_actor_config(self, actor_config, subreddit,
+                           action_buffer_builder, target_types):
+        """Parse actor configuration and return a actor."""
+        actor_class = _ACTOR_REGISTRY[actor_config['action']]
+        params = actor_config.get('params', {})
+        validate_actor_config(actor_class, params, target_types)
+        if hasattr(actor_class, 'ACTION_BUFFER'):
+            params['buffer'] = action_buffer_builder.get(
+                actor_class.ACTION_BUFFER)
+        return actor_class(
             database=self.database, subreddit=subreddit, **params)
 
     def parse_subreddit_config(self, subreddit_config):
         """Parse subreddit configuration and return a Browser."""
         subreddit = self.reddit.subreddit(subreddit_config['name'])
-        ledger_builder = LedgerBuilder(subreddit)
-        browser_actors = [
-            self.parse_actor_config(actor_config, subreddit, ledger_builder)
-            for actor_config in subreddit_config['rules']
+        action_buffer_builder = ActionBufferBuilder(subreddit)
+        browser_rules = [
+            self.parse_rule_config(rule_config, subreddit,
+                                   action_buffer_builder)
+            for rule_config in subreddit_config['rules']
         ]
         header = subreddit_config.get('header')
         sub_rules = subreddit.rules()['rules']
+        # TODO
 
         # Add remover/notifier for subreddit rules and, if desired,
         # nuker/notifier for comment rules.
         if subreddit_config.get('default_post_actions'):
-            browser_actors.extend(
+            browser_rules.extend(
                 load_subreddit_rules(subreddit, sub_rules, header,
-                                     ledger_builder, self.database))
+                                     action_buffer_builder, self.database))
 
         if subreddit_config.get('default_comment_actions'):
-            browser_actors.extend(
-                load_comment_rules(subreddit, sub_rules, ledger_builder,
+            browser_rules.extend(
+                load_comment_rules(subreddit, sub_rules, action_buffer_builder,
                                    self.database))
 
         helpers.update_sr_tables(self.database.cursor(), subreddit)
         self.database.commit()
 
-        return browser.Browser(browser_actors, ledger_builder.ledgers,
+        return browser.Browser(browser_rules, action_buffer_builder.buffers,
                                subreddit, self.database)

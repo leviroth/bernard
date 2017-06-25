@@ -4,15 +4,15 @@ from .helper import BJOTest
 from bernard import actors
 
 
-class TestActor(BJOTest):
+class TestRule(BJOTest):
     def setUp(self):
         super().setUp()
         notifier = actors.Notifier('A notifcation', self.db, self.subreddit)
-        self.actor = actors.Actor(
+        self.actor = actors.Rule(
             trigger=re.compile('foo', re.I),
             targets=[praw.models.Submission],
             remove=True,
-            subactors=[notifier],
+            actors=[notifier],
             action_name="Remove",
             action_details=None,
             database=self.db,
@@ -20,18 +20,18 @@ class TestActor(BJOTest):
 
     def test_match__correct_type(self):
         post = self.r.submission(id='5e7x7o')
-        with self.recorder.use_cassette('TestActor.test_match__correct_type'):
+        with self.recorder.use_cassette('TestRule.test_match__correct_type'):
             self.assertTrue(self.actor.match('foo', post))
 
     def test_match__incorrect_type(self):
         post = self.r.comment(id='dbnq46r')
         with self.recorder.use_cassette(
-                'TestActor.test_match__incorrect_type'):
+                'TestRule.test_match__incorrect_type'):
             self.assertFalse(self.actor.match('foo', post))
 
     def test_parse(self):
         post = self.r.submission(id='5e7w80')
-        with self.recorder.use_cassette('TestActor.test_parse'):
+        with self.recorder.use_cassette('TestRule.test_parse'):
             self.actor.parse('foo', 'TGB', post)
             post = self.r.submission(id='5e7w80')
             self.assertIsNotNone(post.banned_by)
@@ -78,14 +78,14 @@ class TestNuker(BJOTest):
             self.assertIsNotNone(child.banned_by)
 
 
-class TestWikiWatcher(BJOTest):
+class TestAutomodWatcher(BJOTest):
     def test_action(self):
-        ledger = actors.WikiWatcherLedger(self.subreddit)
-        actor = actors.WikiWatcher('test-placeholder', ledger, self.db,
-                                   self.subreddit)
+        buffer = actors.AutomodWatcherActionBuffer(self.subreddit)
+        actor = actors.AutomodWatcher('test-placeholder', buffer, self.db,
+                                      self.subreddit)
         post = self.r.comment(id='dbnpgmz')
-        with self.recorder.use_cassette('TestWikiWatcher.test_action'):
+        with self.recorder.use_cassette('TestAutomodWatcher.test_action'):
             actor.action(post, 'TGB', action_id=1)
-            placeholder_buffer = ledger.placeholder_dict['test-placeholder']
+            placeholder_buffer = buffer.placeholder_dict['test-placeholder']
             self.assertEqual(1,
                              len(placeholder_buffer))

@@ -8,23 +8,23 @@ from bernard import browser, actors
 class TestBrowser(BJOTest):
     def setUp(self):
         super().setUp()
-        self.subactor = unittest.mock.MagicMock()
-        self.actor = actors.Actor(
+        self.actor = unittest.mock.MagicMock()
+        self.rule = actors.Rule(
             trigger=re.compile('foo', re.I),
             targets=[praw.models.Submission],
             remove=False,
-            subactors=[self.subactor],
+            actors=[self.actor],
             action_name="Remove",
             action_details=None,
             database=self.db,
             subreddit=self.subreddit)
-        self.browser = browser.Browser([self.actor], [], self.subreddit,
+        self.browser = browser.Browser([self.rule], [], self.subreddit,
                                        self.db)
 
     def test_run(self):
         with self.recorder.use_cassette('TestBrowser.test_run'):
             self.browser.run()
-            self.assertTrue(self.subactor.action.called)
+            self.assertTrue(self.actor.action.called)
 
     def test_empty_string_report(self):
         with self.recorder.use_cassette(
