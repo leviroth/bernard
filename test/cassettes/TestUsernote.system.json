@@ -181,7 +181,7 @@
           "User-Agent": "Tests for BernardJOrtcutt - levimroth@gmail.com PRAW/4.5.1 prawcore/0.10.1"
         },
         "method": "GET",
-        "uri": "https://oauth.reddit.com/r/ThirdRealm/about/moderators/?unique=0&raw_json=1"
+        "uri": "https://oauth.reddit.com/r/ThirdRealm/about/moderators/?raw_json=1"
       },
       "response": {
         "body": {
@@ -218,7 +218,7 @@
           "code": 200,
           "message": "OK"
         },
-        "url": "https://oauth.reddit.com/r/ThirdRealm/about/moderators/?unique=0&raw_json=1"
+        "url": "https://oauth.reddit.com/r/ThirdRealm/about/moderators/?raw_json=1"
       }
     },
     {
