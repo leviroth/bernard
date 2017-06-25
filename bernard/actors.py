@@ -39,7 +39,7 @@ def update(self, transformation, reason=None):
 praw.models.WikiPage.update = update
 
 
-class Actor:
+class Rule:
     """A class for managing rules.
 
     Responsible for matching input with commands, performing the requested
@@ -47,13 +47,13 @@ class Actor:
 
     """
 
-    def __init__(self, trigger, targets, remove, subactors, action_name,
+    def __init__(self, trigger, targets, remove, actors, action_name,
                  action_details, database, subreddit):
         """Initialize the Actor class."""
         self.trigger = trigger
         self.targets = targets
         self.remove = remove
-        self.subactors = subactors
+        self.actors = actors
         self.action_name = action_name
         self.action_details = action_details
         self.database = database
@@ -79,8 +79,8 @@ class Actor:
 
             action_id = self.log_action(post, mod)
 
-            for subactor in self.subactors:
-                subactor.action(post, mod, action_id=action_id)
+            for actor in self.actors:
+                actor.action(post, mod, action_id=action_id)
 
             if self.remove:
                 self.remove_thing(post, action_id=action_id)
@@ -144,11 +144,11 @@ class Actor:
         return self.cursor.lastrowid
 
 
-class Ledger:  # pylint: disable=too-few-public-methods
+class ActionBuffer:  # pylint: disable=too-few-public-methods
     """Abstract class for managing buffered updates."""
 
     def __init__(self, subreddit):
-        """Initialize the Ledger class."""
+        """Initialize the ActionBuffer class."""
         self.subreddit = subreddit
 
     def after(self):
@@ -156,7 +156,7 @@ class Ledger:  # pylint: disable=too-few-public-methods
         raise NotImplementedError
 
 
-class Subactor:
+class Actor:
     """Base class for specific actions the bot can perform."""
 
     REQUIRED_TYPES = {}
@@ -172,7 +172,7 @@ class Subactor:
                                    .format(param, required_type))
 
     def __init__(self, database, subreddit):
-        """Initialize the Subactor class."""
+        """Initialize the Actor class."""
         self.database = database
         self.cursor = database.cursor()
         self.subreddit = subreddit
@@ -182,7 +182,7 @@ class Subactor:
         pass
 
 
-class Banner(Subactor):
+class Banner(Actor):
     """A class to ban authors."""
 
     REQUIRED_TYPES = {'message': str, 'reason': str, 'duration': int}
@@ -227,7 +227,7 @@ class Banner(Subactor):
             logging.error("Failed to ban %s: %s", post.author, exception)
 
 
-class Locker(Subactor):
+class Locker(Actor):
     """Locks posts, without necessarily removing them."""
 
     VALID_TARGETS = [praw.models.Submission]
@@ -240,7 +240,7 @@ class Locker(Subactor):
             logging.error("Failed to lock %s: %s", post, exception)
 
 
-class Notifier(Subactor):
+class Notifier(Actor):
     """A class for replying to targets."""
 
     REQUIRED_TYPES = {'text': str}
@@ -297,7 +297,7 @@ class Notifier(Subactor):
                             'action_id) VALUES(?,?)', (comment_id, action_id))
 
 
-class Nuker(Subactor):
+class Nuker(Actor):
     """A class to recursiely remove replies.
 
     Does not affect the target itself. Submissions are skipped, but accepted
@@ -330,7 +330,7 @@ class Nuker(Subactor):
                                   comment.name, exception)
 
 
-class ToolboxNoteAdderLedger(Ledger):
+class ToolboxNoteAdderActionBuffer(ActionBuffer):
     """A class to manage buffered Toolbox updates."""
 
     EXPECTED_VERSION = 6
@@ -351,7 +351,7 @@ class ToolboxNoteAdderLedger(Ledger):
         return json.loads(unzipped.decode())
 
     def __init__(self, *args, **kwargs):
-        """Initialize the ToolboxNoteAdderLedger class."""
+        """Initialize the ToolboxNoteAdderActionBuffer class."""
         super().__init__(*args, **kwargs)
         self.notes = []
 
@@ -407,10 +407,10 @@ class ToolboxNoteAdderLedger(Ledger):
             self.notes.clear()
 
 
-class ToolboxNoteAdder(Subactor):
+class ToolboxNoteAdder(Actor):
     """A class to add Moderator Toolbox notes to the wiki."""
 
-    LEDGER = ToolboxNoteAdderLedger
+    ACTION_BUFFER = ToolboxNoteAdderActionBuffer
     REQUIRED_TYPES = {'level': str, 'text': str}
     VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
@@ -423,16 +423,16 @@ class ToolboxNoteAdder(Subactor):
             return 'l,{submission_id},{comment_id}'.format(
                 submission_id=thing.submission.id, comment_id=thing.id)
 
-    def __init__(self, text, level, ledger, *args, **kwargs):
+    def __init__(self, text, level, buffer, *args, **kwargs):
         """Initialize the ToolboxNoteAdder class."""
         super().__init__(*args, **kwargs)
         self.text = text
         self.level = level
-        self.ledger = ledger
+        self.buffer = buffer
 
     def action(self, post, mod, action_id):
         """Enqueue a note to add after pass through the reports."""
-        self.ledger.add(
+        self.buffer.add(
             BufferedNote(
                 str(post.author), self.level,
                 self.toolbox_link_string(post), mod, self.text,
@@ -456,11 +456,11 @@ class BufferedNote(
         }
 
 
-class WikiWatcherLedger(Ledger):
+class AutomodWatcherActionBuffer(ActionBuffer):
     """A class to manage buffered AutoMod updates."""
 
     def __init__(self, *args, **kwargs):
-        """Initialize the WikiWatcherLedger class."""
+        """Initialize the AutomodWatcherActionBuffer class."""
         super().__init__(*args, **kwargs)
         self.placeholder_dict = {}
 
@@ -492,23 +492,23 @@ class WikiWatcherLedger(Ledger):
                 buffer.clear()
 
 
-class WikiWatcher(Subactor):
+class AutomodWatcher(Actor):
     """A class for adding authors to AutoMod configuration lists."""
 
-    LEDGER = WikiWatcherLedger
+    ACTION_BUFFER = AutomodWatcherActionBuffer
     REQUIRED_TYPES = {'placeholder': str}
     VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
-    def __init__(self, placeholder, ledger, *args, **kwargs):
-        """Initialize the WikiWatcher class."""
+    def __init__(self, placeholder, buffer, *args, **kwargs):
+        """Initialize the AutomodWatcher class."""
         super().__init__(*args, **kwargs)
         self.placeholder = placeholder
-        self.ledger = ledger
+        self.buffer = buffer
 
     def action(self, post, mod, action_id):
         """Add post author to buffer for update.
 
-        Actual wiki update performed in WikiWatcher.after.
+        Actual wiki update performed in AutomodWatcherActionBuffer.after.
 
         """
-        self.ledger.add(self.placeholder, str(post.author))
+        self.buffer.add(self.placeholder, str(post.author))

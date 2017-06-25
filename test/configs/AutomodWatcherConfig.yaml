@@ -9,6 +9,6 @@ subreddits:
     types: [post, comment]
     remove: false
     actions:
-      - action: wikiwatch
+      - action: automodwatch
         params:
           placeholder: 'do!not!remove!watchlist'
