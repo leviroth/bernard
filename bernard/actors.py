@@ -351,6 +351,7 @@ class ToolboxNoteAdderLedger(Ledger):
         return json.loads(unzipped.decode())
 
     def __init__(self, *args, **kwargs):
+        """Initialize the ToolboxNoteAdderLedger class."""
         super().__init__(*args, **kwargs)
         self.notes = []
 
@@ -441,6 +442,7 @@ class ToolboxNoteAdder(Subactor):
 class BufferedNote(
         namedtuple('BufferedNote', 'author level link mod text time')):
     """A class for buffered Toolbox usernotes."""
+
     __slots__ = ()
 
     def to_serializable(self, mod_indices, warning_indices):
@@ -458,6 +460,7 @@ class WikiWatcherLedger(Ledger):
     """A class to manage buffered AutoMod updates."""
 
     def __init__(self, *args, **kwargs):
+        """Initialize the WikiWatcherLedger class."""
         super().__init__(*args, **kwargs)
         self.placeholder_dict = {}
 

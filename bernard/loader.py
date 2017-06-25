@@ -105,7 +105,9 @@ def load_comment_rules(subreddit, rules, ledger_builder, database):
 
 class LedgerBuilder:
     """Provide ledgers for a subreddit configuration."""
+
     def __init__(self, subreddit):
+        """Initialize the ledger class."""
         self.subreddit = subreddit
         self._ledgers = {}
 
