@@ -16,8 +16,7 @@ class TestActor(BJOTest):
             action_name="Remove",
             action_details=None,
             database=self.db,
-            subreddit=self.subreddit
-        )
+            subreddit=self.subreddit)
 
     def test_match__correct_type(self):
         post = self.r.submission(id='5e7x7o')
@@ -40,11 +39,11 @@ class TestActor(BJOTest):
             post_id = int('5e7w80', base=36)
             self.cur.execute('SELECT action_summary, id FROM actions '
                              'WHERE target_type = 3 AND target_id = ?',
-                             (post_id,))
+                             (post_id, ))
             summary, action_id = self.cur.fetchone()
             self.assertEqual('Remove', summary)
             self.cur.execute('SELECT * FROM removals WHERE action_id = ?',
-                             (action_id,))
+                             (action_id, ))
 
 
 class TestBanner(BJOTest):
@@ -81,19 +80,12 @@ class TestNuker(BJOTest):
 
 class TestWikiWatcher(BJOTest):
     def test_action(self):
-        actor = actors.WikiWatcher('test-placeholder', self.db, self.subreddit)
+        ledger = actors.WikiWatcherLedger(self.subreddit)
+        actor = actors.WikiWatcher('test-placeholder', ledger, self.db,
+                                   self.subreddit)
         post = self.r.comment(id='dbnpgmz')
         with self.recorder.use_cassette('TestWikiWatcher.test_action'):
             actor.action(post, 'TGB', action_id=1)
-            self.assertEqual(1, len(actor.to_add))
-            self.assertEqual('BJO_test_mod', actor.to_add[0])
-
-    def test_after(self):
-        actor = actors.WikiWatcher('test!placeholder', self.db, self.subreddit)
-        actor.to_add.append('BJO_test_mod')
-        with self.recorder.use_cassette('TestWikiWatcher.test_after'):
-            actor.after()
-            automod_config = self.subreddit.wiki['config/automoderator']
-            first_line = automod_config.content_md.splitlines()[0].strip()
-            self.assertEqual('author: [test!placeholder, BJO_test_mod,]',
-                             first_line)
+            placeholder_buffer = ledger.placeholder_dict['test-placeholder']
+            self.assertEqual(1,
+                             len(placeholder_buffer))

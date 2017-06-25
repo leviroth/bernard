@@ -17,9 +17,9 @@ class TestBrowser(BJOTest):
             action_name="Remove",
             action_details=None,
             database=self.db,
-            subreddit=self.subreddit
-        )
-        self.browser = browser.Browser([self.actor], self.subreddit, self.db)
+            subreddit=self.subreddit)
+        self.browser = browser.Browser([self.actor], [], self.subreddit,
+                                       self.db)
 
     def test_run(self):
         with self.recorder.use_cassette('TestBrowser.test_run'):
