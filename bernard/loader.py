@@ -148,7 +148,7 @@ class YAMLLoader:
         subactors = [
             self.parse_subactor_config(subactor_config, subreddit,
                                        ledger_builder, target_types)
-            for subactor_config in actor_config['actions']
+            for subactor_config in actor_config.get('actions', [])
         ]
 
         return actors.Actor(command, target_types, actor_config['remove'],
