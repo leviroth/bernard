@@ -175,6 +175,8 @@ class Banner(Actor):
             permalink = target.permalink
             kind = "post"
 
+        permalink = urllib.parse.quote(permalink)
+
         return ("\n\nThis action was taken because of the following {}: {}"
                 ).format(kind, permalink)
 
