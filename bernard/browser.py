@@ -29,7 +29,7 @@ class Browser:
             for post in self.subreddit.mod.reports(limit=None):
                 for mod_report in post.mod_reports:
                     yield (str(mod_report[0]), mod_report[1], post)
-        except prawcore.exceptions.RequestException as exception:
+        except prawcore.PrawcoreException as exception:
             logging.error("Error fetching reports: %s", exception)
 
     def run(self):
