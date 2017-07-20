@@ -69,13 +69,13 @@ class Rule:
         """Perform and log removal. Lock if thing is a submission."""
         try:
             thing.mod.remove()
-        except prawcore.exceptions.RequestException as exception:
+        except prawcore.PrawcoreException as exception:
             logging.error("Failed to remove %s: %s", thing, exception)
 
         if isinstance(thing, praw.models.Submission):
             try:
                 thing.mod.lock()
-            except prawcore.exceptions.RequestException as exception:
+            except prawcore.PrawcoreException as exception:
                 logging.error("Failed to lock %s: %s", thing, exception)
 
         self.cursor.execute('INSERT INTO removals (action_id) VALUES(?)',
@@ -201,7 +201,7 @@ class Banner(Actor):
                 duration=self.duration,
                 ban_message=message,
                 ban_reason="{} - by {}".format(self.reason, mod)[:300])
-        except prawcore.exceptions.RequestException as exception:
+        except prawcore.PrawcoreException as exception:
             logging.error("Failed to ban %s: %s", post.author, exception)
 
 
@@ -214,7 +214,7 @@ class Locker(Actor):
         """Lock the post."""
         try:
             post.mod.lock()
-        except prawcore.exceptions.RequestException as exception:
+        except prawcore.PrawcoreException as exception:
             logging.error("Failed to lock %s: %s", post, exception)
 
 
@@ -254,7 +254,7 @@ class Notifier(Actor):
 
         try:
             result = post.reply(text)
-        except prawcore.exceptions.RequestException as exception:
+        except prawcore.PrawcoreException as exception:
             logging.error("Failed to add comment on %s: %s", post.name,
                           exception)
             return
@@ -264,7 +264,7 @@ class Notifier(Actor):
         try:
             result.mod.distinguish(sticky=isinstance(post,
                                                      praw.models.Submission))
-        except prawcore.exceptions.RequestException as exception:
+        except prawcore.PrawcoreException as exception:
             logging.error("Failed to distinguish comment on %s: %s", post.name,
                           exception)
 
@@ -294,7 +294,7 @@ class Nuker(Actor):
             post.refresh()
             post.replies.replace_more()
             flat_tree = post.replies.list()
-        except prawcore.exceptions.RequestException as exception:
+        except prawcore.PrawcoreException as exception:
             logging.error("Failed to retrieve comment tree on %s: %s",
                           post.name, exception)
             return
@@ -303,7 +303,7 @@ class Nuker(Actor):
             if comment.distinguished is None:
                 try:
                     comment.mod.remove()
-                except prawcore.exceptions.RequestException as exception:
+                except prawcore.PrawcoreException as exception:
                     logging.error("Failed to remove comment %s: %s",
                                   comment.name, exception)
 
@@ -378,7 +378,7 @@ class ToolboxNoteAdderActionBuffer(ActionBuffer):
         wiki_page = self.subreddit.wiki['usernotes']
         try:
             wiki_page.update(self._transform_page)
-        except prawcore.exceptions.RequestException as exception:
+        except prawcore.PrawcoreException as exception:
             logging.error("Failed to load toolbox usernotes: %s", exception)
             return
         else:
@@ -463,7 +463,7 @@ class AutomodWatcherActionBuffer(ActionBuffer):
 
         try:
             automod_config.update(self._transform_page)
-        except prawcore.exceptions.RequestException as exception:
+        except prawcore.PrawcoreException as exception:
             logging.error("Failed to update automod config %s", exception)
         else:
             for buffer in self.placeholder_dict.values():

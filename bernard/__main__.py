@@ -40,7 +40,7 @@ def main():
                 for browser in browsers:
                     try:
                         helpers.update_sr_tables(cursor, browser.subreddit)
-                    except prawcore.exceptions.RequestException as exception:
+                    except prawcore.PrawcoreException as exception:
                         logging.error(exception)
                         database.rollback()
                     else:
