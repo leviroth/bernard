@@ -173,14 +173,12 @@ class Banner(Actor):
 
     REQUIRED_TYPES = {'message': str, 'reason': str, 'duration': int}
     VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
+    KINDS = {praw.models.Comment: 'comment', praw.models.Submission: 'post'}
 
-    @staticmethod
-    def _footer(target):
+    @classmethod
+    def _footer(cls, target):
         """Return footer identifying the target that led to the ban."""
-        if isinstance(target, praw.models.Comment):
-            kind = "comment"
-        else:
-            kind = "post"
+        kind = cls.KINDS[type(target)]
 
         permalink = fetch_permalink(target)
         permalink = urllib.parse.quote(permalink)
