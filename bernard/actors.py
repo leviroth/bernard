@@ -15,6 +15,16 @@ import prawdditions  # NOQA
 from . import helpers
 
 
+def fetch_permalink(thing):
+    """Return permalink to thing."""
+    if isinstance(thing, praw.models.Comment):
+        return thing.permalink()
+    elif isinstance(thing, praw.models.Submission):
+        return thing.permalink
+    else:
+        raise TypeError("Only comments and submissions have permalinks.")
+
+
 class Rule:
     """A class for managing rules.
 
@@ -163,18 +173,14 @@ class Banner(Actor):
 
     REQUIRED_TYPES = {'message': str, 'reason': str, 'duration': int}
     VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
+    KINDS = {praw.models.Comment: 'comment', praw.models.Submission: 'post'}
 
-    @staticmethod
-    def _footer(target):
+    @classmethod
+    def _footer(cls, target):
         """Return footer identifying the target that led to the ban."""
-        if isinstance(target, praw.models.Comment):
-            # praw.models.Comment.permalink is a method
-            permalink = target.permalink()
-            kind = "comment"
-        else:
-            permalink = target.permalink
-            kind = "post"
+        kind = cls.KINDS[type(target)]
 
+        permalink = fetch_permalink(target)
         permalink = urllib.parse.quote(permalink)
 
         return ("\n\nThis action was taken because of the following {}: {}"
@@ -246,10 +252,7 @@ class Notifier(Actor):
 
     def action(self, post, mod, action_id):
         """Add, distinguish, and (if top-level) sticky reply to target."""
-        permalink = post.permalink
-        # praw.models.Comment.permalink is a method
-        if isinstance(post, praw.models.Comment):
-            permalink = permalink()
+        permalink = fetch_permalink(post)
         text = self.text + self._footer(permalink)
 
         try:
