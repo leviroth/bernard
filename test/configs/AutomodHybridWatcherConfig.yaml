@@ -1,0 +1,17 @@
+subreddits:
+- name: thirdrealm
+  default_post_actions: false
+  default_comment_actions: false
+  rules:
+  - name: "Domain and user banned"
+    details: "Psychologist propaganda"
+    trigger: ["Ban both"]
+    types: [post]
+    remove: true
+    actions:
+      - action: domainwatch
+        params:
+          placeholder: 'do!not!remove!domain'
+      - action: userwatch
+        params:
+          placeholder: 'do!not!remove!watchlist'

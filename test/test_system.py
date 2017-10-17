@@ -21,6 +21,9 @@ class SystemTest(BJOTest):
     def test_automod_domain_watcher(self):
         self.basic_test('AutomodDomainWatcher')
 
+    def test_automod_hybrid_watcher(self):
+        self.basic_test('AutomodHybridWatcher')
+
     def test_automod_user_watcher(self):
         self.basic_test('AutomodUserWatcher')
 
