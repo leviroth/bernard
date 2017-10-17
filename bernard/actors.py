@@ -474,11 +474,10 @@ class AutomodWatcherActionBuffer(ActionBuffer):
 
 
 class AutomodWatcher(Actor):
-    """A class for adding authors to AutoMod configuration lists."""
+    """An abstract class for adding items to AutoMod configuration lists."""
 
     ACTION_BUFFER = AutomodWatcherActionBuffer
     REQUIRED_TYPES = {'placeholder': str}
-    VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
     def __init__(self, placeholder, buffer, *args, **kwargs):
         """Initialize the AutomodWatcher class."""
@@ -486,10 +485,34 @@ class AutomodWatcher(Actor):
         self.placeholder = placeholder
         self.buffer = buffer
 
+    def _get_item(self, post):
+        """Return item to add to automod."""
+        raise NotImplementedError
+
     def action(self, post, mod, action_id):
-        """Add post author to buffer for update.
+        """Add item to buffer for update.
 
         Actual wiki update performed in AutomodWatcherActionBuffer.after.
 
         """
-        self.buffer.add(self.placeholder, str(post.author))
+        self.buffer.add(self.placeholder, self._get_item(post))
+
+
+class AutomodDomainWatcher(AutomodWatcher):
+    """An class for adding domains to AutoMod configuration lists."""
+
+    VALID_TARGETS = [praw.models.Submission]
+
+    def _get_item(self, post):
+        """Return post's author."""
+        return post.domain
+
+
+class AutomodUserWatcher(AutomodWatcher):
+    """An class for adding authors to AutoMod configuration lists."""
+
+    VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
+
+    def _get_item(self, post):
+        """Return post's author."""
+        return str(post.author)
