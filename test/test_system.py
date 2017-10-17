@@ -18,8 +18,11 @@ class SystemTest(BJOTest):
         rows = self.db.execute('SELECT * FROM actions').fetchall()
         assert len(rows) == 1
 
-    def test_automod_watcher(self):
-        self.basic_test('AutomodWatcher')
+    def test_automod_domain_watcher(self):
+        self.basic_test('AutomodDomainWatcher')
+
+    def test_automod_user_watcher(self):
+        self.basic_test('AutomodUserWatcher')
 
     def test_banner(self):
         self.basic_test('Banner')

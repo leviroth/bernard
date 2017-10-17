@@ -78,13 +78,27 @@ class TestNuker(BJOTest):
             self.assertIsNotNone(child.banned_by)
 
 
-class TestAutomodWatcher(BJOTest):
+class TestAutomodDomainWatcher(BJOTest):
     def test_action(self):
         buffer = actors.AutomodWatcherActionBuffer(self.subreddit)
-        actor = actors.AutomodWatcher('test-placeholder', buffer, self.db,
-                                      self.subreddit)
+        actor = actors.AutomodDomainWatcher('test-placeholder', buffer,
+                                            self.db, self.subreddit)
+        post = self.r.submission(id='5kgajm')
+        with self.recorder.use_cassette(
+                'TestAutomodDomainWatcher.test_action'):
+            actor.action(post, 'TGB', action_id=1)
+            placeholder_buffer = buffer.placeholder_dict['test-placeholder']
+            self.assertEqual(1,
+                             len(placeholder_buffer))
+
+
+class TestAutomodUserWatcher(BJOTest):
+    def test_action(self):
+        buffer = actors.AutomodWatcherActionBuffer(self.subreddit)
+        actor = actors.AutomodUserWatcher('test-placeholder', buffer, self.db,
+                                          self.subreddit)
         post = self.r.comment(id='dbnpgmz')
-        with self.recorder.use_cassette('TestAutomodWatcher.test_action'):
+        with self.recorder.use_cassette('TestAutomodUserWatcher.test_action'):
             actor.action(post, 'TGB', action_id=1)
             placeholder_buffer = buffer.placeholder_dict['test-placeholder']
             self.assertEqual(1,

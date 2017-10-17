@@ -13,11 +13,12 @@ _TARGET_MAP = {
 
 _ACTOR_REGISTRY = {
     'ban': actors.Banner,
+    'domainwatch': actors.AutomodDomainWatcher,
     'lock': actors.Locker,
     'notify': actors.Notifier,
     'nuke': actors.Nuker,
     'usernote': actors.ToolboxNoteAdder,
-    'automodwatch': actors.AutomodWatcher,
+    'userwatch': actors.AutomodUserWatcher,
 }
 
 
