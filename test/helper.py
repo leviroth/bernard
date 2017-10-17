@@ -6,6 +6,7 @@ import betamax
 import time
 from base64 import b64encode
 from betamax_serializers import pretty_json
+from urllib.parse import quote_plus
 
 import sys
 sys.path.append('bernard/')
@@ -42,7 +43,8 @@ class BJOTest(unittest.TestCase):
             user_agent="Tests for BernardJOrtcutt - levimroth@gmail.com")
         placeholders = {
             x: getattr(self.r.config, x)
-            for x in "client_id client_secret username password".split()}
+            for x in ("client_id client_secret username password "
+                      "user_agent").split()}
         placeholders['basic_auth'] = b64_string(
             '{}:{}'.format(placeholders['client_id'],
                            placeholders['client_secret']))
@@ -52,6 +54,8 @@ class BJOTest(unittest.TestCase):
             config.default_cassette_options['serialize_with'] = 'prettyjson'
             config.before_record(callback=filter_access_token)
             for key, value in placeholders.items():
+                if key == 'password':
+                    value = quote_plus(value)
                 config.define_cassette_placeholder('<{}>'.format(key.upper()),
                                                    value)
 
