@@ -80,12 +80,14 @@ target is a submission.
 
 ### Automod update ###
 
-Adds the author's username to a list the AutoModerator configuration. This
-requires that the list include a placeholder name. I put exclamation marks in my
-placeholders to ensure that they can't match a valid username.
+Adds the author's username and/or post's domain to a list in the AutoModerator
+configuration. This requires that the list include a placeholder name. I put
+exclamation marks in my placeholders to ensure that they can't match a valid
+username.
 
 *Example uses*: Automatically report a problem user's comments for review;
-automatically flair posts by bots or other specific-purpose accounts.
+automatically flair posts by bots or other specific-purpose accounts;
+automatically remove spam domains.
 
 ### Ban authors ###
 
