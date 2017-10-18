@@ -41,9 +41,18 @@ subreddits:
     types: [post, comment]
     remove: true
     actions:
-      - action: wikiwatch
+      - action: userwatch
         params:
           placeholder: 'do!not!remove!watchlist'
+  - name: "Domain banned"
+    details: "Regarded as spam"
+    trigger: ["ban domain"]
+    types: [post]
+    remove: true
+    actions:
+      - action: domainwatch
+        params:
+          placeholder: 'do!not!remove!domain'
   - name: "Nuked"
     trigger: [nuke, n]
     types: [comment]
