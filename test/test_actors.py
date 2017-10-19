@@ -12,6 +12,7 @@ class TestRule(BJOTest):
             trigger=re.compile('foo', re.I),
             targets=[praw.models.Submission],
             remove=True,
+            lock=True,
             actors=[notifier],
             action_name="Remove",
             action_details=None,

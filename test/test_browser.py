@@ -13,6 +13,7 @@ class TestBrowser(BJOTest):
             trigger=re.compile('foo', re.I),
             targets=[praw.models.Submission],
             remove=False,
+            lock=False,
             actors=[self.actor],
             action_name="Remove",
             action_details=None,
