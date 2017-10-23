@@ -15,16 +15,6 @@ import prawdditions  # NOQA
 from . import helpers
 
 
-def fetch_permalink(thing):
-    """Return permalink to thing."""
-    if isinstance(thing, praw.models.Comment):
-        return thing.permalink()
-    elif isinstance(thing, praw.models.Submission):
-        return thing.permalink
-    else:
-        raise TypeError("Only comments and submissions have permalinks.")
-
-
 class Rule:
     """A class for managing rules.
 
@@ -180,8 +170,7 @@ class Banner(Actor):
         """Return footer identifying the target that led to the ban."""
         kind = cls.KINDS[type(target)]
 
-        permalink = fetch_permalink(target)
-        permalink = urllib.parse.quote(permalink)
+        permalink = urllib.parse.quote(target.permalink)
 
         return ("\n\nThis action was taken because of the following {}: {}"
                 ).format(kind, permalink)
@@ -252,7 +241,7 @@ class Notifier(Actor):
 
     def action(self, post, mod, action_id):
         """Add, distinguish, and (if top-level) sticky reply to target."""
-        permalink = fetch_permalink(post)
+        permalink = post.permalink
         text = self.text + self._footer(permalink)
 
         try:
