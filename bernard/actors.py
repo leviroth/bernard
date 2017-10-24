@@ -23,12 +23,13 @@ class Rule:
 
     """
 
-    def __init__(self, trigger, targets, remove, actors, action_name,
+    def __init__(self, trigger, targets, remove, lock, actors, action_name,
                  action_details, database, subreddit):
         """Initialize the Actor class."""
         self.trigger = trigger
         self.targets = targets
         self.remove = remove
+        self.lock = lock
         self.actors = actors
         self.action_name = action_name
         self.action_details = action_details
@@ -72,7 +73,7 @@ class Rule:
         except prawcore.PrawcoreException as exception:
             logging.error("Failed to remove %s: %s", thing, exception)
 
-        if isinstance(thing, praw.models.Submission):
+        if self.lock and isinstance(thing, praw.models.Submission):
             try:
                 thing.mod.lock()
             except prawcore.PrawcoreException as exception:

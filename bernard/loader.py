@@ -59,7 +59,7 @@ def load_subreddit_rules(subreddit, rules, header, action_buffer_builder,
         ]
 
         our_rules.append(
-            actors.Rule(command, [praw.models.Submission], True, actions,
+            actors.Rule(command, [praw.models.Submission], True, True, actions,
                         'Removed', 'Rule {}'.format(i), database, subreddit))
 
     return our_rules
@@ -100,8 +100,9 @@ def load_comment_rules(subreddit, rules, action_buffer_builder, database):
         ]
 
         our_rules.append(
-            actors.Rule(command, [praw.models.Comment], True, actions, 'Nuked',
-                        'Comment Rule {}'.format(i), database, subreddit))
+            actors.Rule(command, [praw.models.Comment], True, False, actions,
+                        'Nuked', 'Comment Rule {}'.format(i), database,
+                        subreddit))
 
     return our_rules
 
@@ -157,6 +158,7 @@ class YAMLLoader:
         ]
 
         return actors.Rule(command, target_types, rule_config['remove'],
+                           rule_config.get('lock', rule_config['remove']),
                            our_actors, rule_config['name'],
                            rule_config.get('details'), self.database,
                            subreddit)
