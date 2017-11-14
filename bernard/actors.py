@@ -150,8 +150,6 @@ class Actor:
 
     def __init__(self, database, subreddit):
         """Initialize the Actor class."""
-        self.database = database
-        self.cursor = database.cursor()
         self.subreddit = subreddit
 
     def action(self, post, mod, action_id):
@@ -220,9 +218,10 @@ class Notifier(Actor):
     REQUIRED_TYPES = {'text': str}
     VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
-    def __init__(self, text, *args, **kwargs):
+    def __init__(self, text, database, *args, **kwargs):
         """Initialie the notifier class."""
-        super().__init__(*args, **kwargs)
+        super().__init__(database, *args, **kwargs)
+        self.cursor = database.cursor()
         self.text = text
 
     def _footer(self, url):
