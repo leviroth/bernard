@@ -6,3 +6,4 @@
 * Renamed 'wikiwatch' to 'userwatch' for configuration file.
 * Added 'domainwatch' to add post domains to AutoMod configuration.
 * Removed legacy default configuration loader
+* Removed notifications and removals from database

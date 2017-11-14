@@ -102,8 +102,7 @@ class YAMLLoader:
         if hasattr(actor_class, 'ACTION_BUFFER'):
             params['buffer'] = action_buffer_builder.get(
                 actor_class.ACTION_BUFFER)
-        return actor_class(
-            database=self.database, subreddit=subreddit, **params)
+        return actor_class(subreddit=subreddit, **params)
 
     def parse_subreddit_config(self, subreddit_config):
         """Parse subreddit configuration and return a Browser."""

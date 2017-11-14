@@ -32,9 +32,6 @@ class SystemTest(BJOTest):
 
     def test_notifier(self):
         self.basic_test('Notifier')
-        notification_count = self.db.execute(
-            'SELECT COUNT() FROM notifications').fetchall()[0][0]
-        assert notification_count == 1
 
     def test_nuker(self):
         self.basic_test('Nuker')
