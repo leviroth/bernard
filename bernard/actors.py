@@ -64,6 +64,12 @@ class Rule:
             else:
                 post.mod.approve()
 
+        if self.lock and isinstance(post, praw.models.Submission):
+            try:
+                post.mod.lock()
+            except prawcore.PrawcoreException as exception:
+                logging.error("Failed to lock %s: %s", post, exception)
+
             self.database.commit()
 
     def remove_thing(self, thing, action_id):
@@ -72,12 +78,6 @@ class Rule:
             thing.mod.remove()
         except prawcore.PrawcoreException as exception:
             logging.error("Failed to remove %s: %s", thing, exception)
-
-        if self.lock and isinstance(thing, praw.models.Submission):
-            try:
-                thing.mod.lock()
-            except prawcore.PrawcoreException as exception:
-                logging.error("Failed to lock %s: %s", thing, exception)
 
         self.cursor.execute('INSERT INTO removals (action_id) VALUES(?)',
                             (action_id, ))
