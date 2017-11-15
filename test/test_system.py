@@ -1,6 +1,6 @@
 import pytest
 
-from bernard.loader import YAMLLoader
+from bernard.loader import load_yaml_config
 
 from .helper import BJOTest
 
@@ -9,11 +9,11 @@ pytestmark = pytest.mark.system
 
 class SystemTest(BJOTest):
     def basic_test(self, test_name):
-        loader = YAMLLoader(self.db, self.r)
         with self.recorder.use_cassette('Test{}.system'.format(test_name)):
-            browsers = loader.load(
+            browser = load_yaml_config(
+                self.db, self.subreddit,
                 './test/configs/{}Config.yaml'.format(test_name))
-            browsers[0].run()
+            browser.run()
             assert all(
                 interaction.used
                 for interaction in self.recorder.current_cassette.interactions)

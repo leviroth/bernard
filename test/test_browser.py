@@ -1,5 +1,4 @@
 import praw
-import re
 import unittest.mock
 from .helper import BJOTest
 from bernard import browser, actors
@@ -10,7 +9,7 @@ class TestBrowser(BJOTest):
         super().setUp()
         self.actor = unittest.mock.MagicMock()
         self.rule = actors.Rule(
-            trigger=re.compile('foo', re.I),
+            commands=['foo'],
             targets=[praw.models.Submission],
             remove=False,
             lock=False,

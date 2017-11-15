@@ -1,6 +1,4 @@
 """Module for loading configurations."""
-import re
-
 import praw
 import yaml
 
@@ -20,13 +18,6 @@ _ACTOR_REGISTRY = {
     'usernote': actors.ToolboxNoteAdder,
     'userwatch': actors.AutomodUserWatcher,
 }
-
-
-def build_regex(commands):
-    """Turn commands iterable into a case-insensitive, 'inclusive-or' regex."""
-    escaped_commands = (re.escape(str(command)) for command in commands)
-    joined_commands = "|".join(escaped_commands)
-    return re.compile("^(" + joined_commands + ")$", re.IGNORECASE)
 
 
 def validate_actor_config(actor_class, params, target_types):
@@ -59,63 +50,76 @@ class ActionBufferBuilder:
         return list(self._buffers.values())
 
 
-class YAMLLoader:
-    """Loader for YAML files."""
+class _ActionConfig:
+    def __init__(self, data):
+        if isinstance(data, str):
+            self.action = data
+            self.params = {}
+        elif isinstance(data, dict):
+            self.action, self.params = next(iter(data.items()))
 
-    def __init__(self, database, reddit):
-        """Initialize the YAMLLoader class."""
-        self.database = database
-        self.reddit = reddit
 
-    def load(self, filename):
-        """Parse the given file and return a list of Browsers."""
-        with open(filename) as file:
-            if filename.endswith('.yaml'):
-                config = yaml.safe_load(file)
-        return [
-            self.parse_subreddit_config(subreddit_config)
-            for subreddit_config in config['subreddits']
-        ]
+def parse_actor_config(subreddit, action_buffer_builder, config, target_types):
+    """Parse actor configuration and return a actor."""
+    actor_class = _ACTOR_REGISTRY[config.action]
+    params = config.params
+    validate_actor_config(actor_class, params, target_types)
+    if hasattr(actor_class, 'ACTION_BUFFER'):
+        params['buffer'] = action_buffer_builder.get(actor_class.ACTION_BUFFER)
+    return actor_class(subreddit=subreddit, **params)
 
-    def parse_rule_config(self, rule_config, subreddit, action_buffer_builder):
-        """Return a Rule corresponding to rule_config."""
-        command = build_regex(rule_config['trigger'])
-        target_types = [_TARGET_MAP[x] for x in rule_config['types']]
-        our_actors = [
-            self.parse_actor_config(actor_config, subreddit,
-                                    action_buffer_builder, target_types)
-            for actor_config in rule_config.get('actions', [])
-        ]
 
-        return actors.Rule(command, target_types, rule_config['remove'],
-                           rule_config.get('lock', rule_config['remove']),
-                           our_actors, rule_config['name'],
-                           rule_config.get('details'), self.database,
-                           subreddit)
+def parse_subreddit_config(database, subreddit, config):
+    """Parse subreddit configuration and return a Browser."""
+    action_buffer_builder = ActionBufferBuilder(subreddit)
+    browser_rules = [
+        parse_rule_config(database, subreddit, action_buffer_builder,
+                          rule_config) for rule_config in config
+    ]
 
-    def parse_actor_config(self, actor_config, subreddit,
-                           action_buffer_builder, target_types):
-        """Parse actor configuration and return a actor."""
-        actor_class = _ACTOR_REGISTRY[actor_config['action']]
-        params = actor_config.get('params', {})
-        validate_actor_config(actor_class, params, target_types)
-        if hasattr(actor_class, 'ACTION_BUFFER'):
-            params['buffer'] = action_buffer_builder.get(
-                actor_class.ACTION_BUFFER)
-        return actor_class(subreddit=subreddit, **params)
+    helpers.update_sr_tables(database.cursor(), subreddit)
+    database.commit()
 
-    def parse_subreddit_config(self, subreddit_config):
-        """Parse subreddit configuration and return a Browser."""
-        subreddit = self.reddit.subreddit(subreddit_config['name'])
-        action_buffer_builder = ActionBufferBuilder(subreddit)
-        browser_rules = [
-            self.parse_rule_config(rule_config, subreddit,
-                                   action_buffer_builder)
-            for rule_config in subreddit_config['rules']
-        ]
+    return browser.Browser(browser_rules, action_buffer_builder.buffers,
+                           subreddit, database)
 
-        helpers.update_sr_tables(self.database.cursor(), subreddit)
-        self.database.commit()
 
-        return browser.Browser(browser_rules, action_buffer_builder.buffers,
-                               subreddit, self.database)
+def load_yaml_config(database, subreddit, filename):
+    """Parse the given file and return a list of Browsers."""
+    with open(filename) as file:
+        config = yaml.safe_load_all(file)
+        return parse_subreddit_config(database, subreddit, config)
+
+
+def parse_rule_config(database, subreddit, action_buffer_builder, rule_config):
+    """Return a Rule corresponding to rule_config."""
+    target_types = [_TARGET_MAP[x] for x in rule_config['trigger']['types']]
+    action_configs = [_ActionConfig(x) for x in rule_config.get('actions', [])]
+
+    new_action_configs = []
+    remove = lock = False
+    for action_config in action_configs:
+        if action_config.action == "remove":
+            remove = True
+            lock = action_config.params.get(
+                'lock', True) and praw.models.Submission in target_types
+        else:
+            new_action_configs.append(action_config)
+    our_actors = [
+        parse_actor_config(subreddit, action_buffer_builder, actor_config,
+                           target_types) for actor_config in new_action_configs
+    ]
+
+    return actors.Rule(
+        commands=[
+            command.casefold()
+            for command in rule_config['trigger']['commands']
+        ],
+        targets=target_types,
+        remove=remove,
+        lock=lock,
+        actors=our_actors,
+        action_name=rule_config['info']['name'],
+        action_details=rule_config['info'].get('details'),
+        database=database,
+        subreddit=subreddit)

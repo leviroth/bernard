@@ -1,14 +1,11 @@
-subreddits:
-- name: thirdrealm
-  default_post_actions: false
-  default_comment_actions: false
-  rules:
-  - name: "Domain banned"
-    details: "Psychologist propaganda"
-    trigger: ["Ban domain"]
-    types: [post]
-    remove: true
-    actions:
-      - action: domainwatch
-        params:
-          placeholder: 'do!not!remove!domain'
+---
+info:
+  name: "Domain banned"
+  details: "Psychologist propaganda"
+trigger:
+  commands: ["Ban domain"]
+  types: [post]
+actions:
+  - remove
+  - domainwatch:
+      placeholder: 'do!not!remove!domain'

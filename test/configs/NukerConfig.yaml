@@ -1,12 +1,10 @@
-subreddits:
-- name: thirdrealm
-  default_post_actions: false
-  default_comment_actions: false
-  rules:
-  - name: "Nuke comment thread"
-    details: "Testing"
-    trigger: [n]
-    types: [comment]
-    remove: true
-    actions:
-    - action: nuke
+---
+info:
+  name: "Nuke comment thread"
+  details: "Testing"
+trigger:
+  commands: [n]
+  types: [comment]
+actions:
+  - remove
+  - nuke
