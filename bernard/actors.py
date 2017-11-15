@@ -54,33 +54,29 @@ class Rule:
             if self.cursor.fetchone() is not None:
                 return
 
-            action_id = self.log_action(post, mod)
+            self.log_action(post, mod)
 
             for actor in self.actors:
-                actor.action(post, mod, action_id=action_id)
+                actor.action(post, mod)
 
             if self.remove:
-                self.remove_thing(post, action_id=action_id)
+                try:
+                    post.mod.remove()
+                except prawcore.PrawcoreException as exception:
+                    logging.error("Failed to remove %s: %s", post, exception)
             else:
-                post.mod.approve()
+                try:
+                    post.mod.approve()
+                except prawcore.PrawcoreException as exception:
+                    logging.error("Failed to approve %s: %s", post, exception)
+
+            if self.lock and isinstance(post, praw.models.Submission):
+                try:
+                    post.mod.lock()
+                except prawcore.PrawcoreException as exception:
+                    logging.error("Failed to lock %s: %s", post, exception)
 
             self.database.commit()
-
-    def remove_thing(self, thing, action_id):
-        """Perform and log removal. Lock if thing is a submission."""
-        try:
-            thing.mod.remove()
-        except prawcore.PrawcoreException as exception:
-            logging.error("Failed to remove %s: %s", thing, exception)
-
-        if self.lock and isinstance(thing, praw.models.Submission):
-            try:
-                thing.mod.lock()
-            except prawcore.PrawcoreException as exception:
-                logging.error("Failed to lock %s: %s", thing, exception)
-
-        self.cursor.execute('INSERT INTO removals (action_id) VALUES(?)',
-                            (action_id, ))
 
     def log_action(self, target, moderator):
         """Log action in database and console. Return database row id."""
@@ -118,8 +114,6 @@ class Rule:
         print(moderator, action_summary, action_details, target,
               self.subreddit)
 
-        return self.cursor.lastrowid
-
 
 class ActionBuffer:  # pylint: disable=too-few-public-methods
     """Abstract class for managing buffered updates."""
@@ -148,11 +142,11 @@ class Actor:
                 raise RuntimeError("Invalid type of parameter {} (expected {})"
                                    .format(param, required_type))
 
-    def __init__(self, database, subreddit):
+    def __init__(self, subreddit):
         """Initialize the Actor class."""
         self.subreddit = subreddit
 
-    def action(self, post, mod, action_id):
+    def action(self, post, mod):
         """Perform actions when command is matched."""
         pass
 
@@ -186,7 +180,7 @@ class Banner(Actor):
         self.reason = reason
         self.duration = duration
 
-    def action(self, post, mod, action_id):
+    def action(self, post, mod):
         """Ban author of post."""
         message = self.message + self._footer(post)
         try:
@@ -204,7 +198,7 @@ class Locker(Actor):
 
     VALID_TARGETS = [praw.models.Submission]
 
-    def action(self, post, mod, action_id):
+    def action(self, post, mod):
         """Lock the post."""
         try:
             post.mod.lock()
@@ -218,10 +212,9 @@ class Notifier(Actor):
     REQUIRED_TYPES = {'text': str}
     VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
-    def __init__(self, text, database, *args, **kwargs):
+    def __init__(self, text, *args, **kwargs):
         """Initialie the notifier class."""
-        super().__init__(database, *args, **kwargs)
-        self.cursor = database.cursor()
+        super().__init__(*args, **kwargs)
         self.text = text
 
     def _footer(self, url):
@@ -244,7 +237,7 @@ class Notifier(Actor):
             "it will go unread. Instead, [contact the moderators]({}) with "
             "questions or comments.").format(modmail_link)
 
-    def action(self, post, mod, action_id):
+    def action(self, post, mod):
         """Add, distinguish, and (if top-level) sticky reply to target."""
         permalink = post.permalink
         text = self.text + self._footer(permalink)
@@ -255,8 +248,6 @@ class Notifier(Actor):
             logging.error("Failed to add comment on %s: %s", post.name,
                           exception)
             return
-        else:
-            self.log_notification(result, action_id)
 
         try:
             result.mod.distinguish(sticky=isinstance(post,
@@ -264,12 +255,6 @@ class Notifier(Actor):
         except prawcore.PrawcoreException as exception:
             logging.error("Failed to distinguish comment on %s: %s", post.name,
                           exception)
-
-    def log_notification(self, comment, action_id):
-        """Log notification, associating comment id with action."""
-        _, comment_id = helpers.deserialize_thing_id(comment.fullname)
-        self.cursor.execute('INSERT INTO notifications (comment_id, '
-                            'action_id) VALUES(?,?)', (comment_id, action_id))
 
 
 class Nuker(Actor):
@@ -282,7 +267,7 @@ class Nuker(Actor):
 
     VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
-    def action(self, post, mod, action_id):
+    def action(self, post, mod):
         """Remove the replies."""
         if isinstance(post, praw.models.Submission):
             return
@@ -405,7 +390,7 @@ class ToolboxNoteAdder(Actor):
         self.level = level
         self.buffer = buffer
 
-    def action(self, post, mod, action_id):
+    def action(self, post, mod):
         """Enqueue a note to add after pass through the reports."""
         self.buffer.add(
             BufferedNote(
@@ -483,7 +468,7 @@ class AutomodWatcher(Actor):
         """Return item to add to automod."""
         raise NotImplementedError
 
-    def action(self, post, mod, action_id):
+    def action(self, post, mod):
         """Add item to buffer for update.
 
         Actual wiki update performed in AutomodWatcherActionBuffer.after.

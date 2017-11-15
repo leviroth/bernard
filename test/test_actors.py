@@ -7,7 +7,7 @@ from bernard import actors
 class TestRule(BJOTest):
     def setUp(self):
         super().setUp()
-        notifier = actors.Notifier('A notifcation', self.db, self.subreddit)
+        notifier = actors.Notifier('A notifcation', self.subreddit)
         self.actor = actors.Rule(
             trigger=re.compile('foo', re.I),
             targets=[praw.models.Submission],
@@ -38,42 +38,38 @@ class TestRule(BJOTest):
             self.assertIsNotNone(post.banned_by)
             self.assertTrue(post.locked)
             post_id = int('5e7w80', base=36)
-            self.cur.execute('SELECT action_summary, id FROM actions '
+            self.cur.execute('SELECT action_summary FROM actions '
                              'WHERE target_type = 3 AND target_id = ?',
                              (post_id, ))
-            summary, action_id = self.cur.fetchone()
+            summary, *_ = self.cur.fetchone()
             self.assertEqual('Remove', summary)
-            self.cur.execute('SELECT * FROM removals WHERE action_id = ?',
-                             (action_id, ))
 
 
 class TestBanner(BJOTest):
     def test_action(self):
-        actor = actors.Banner("You banned", "testing purposes", 4, self.db,
+        actor = actors.Banner("You banned", "testing purposes", 4,
                               self.subreddit)
         post = self.r.submission(id='5e7wc7')
         with self.recorder.use_cassette('TestBanner.test_action'):
-            actor.action(post, 'TGB', action_id=1)
+            actor.action(post, 'TGB')
             self.assertIn(post.author, self.subreddit.banned())
 
 
 class TestNotifier(BJOTest):
     def test_action(self):
-        actor = actors.Notifier("sample_text", self.db, self.subreddit)
+        actor = actors.Notifier("sample_text", self.subreddit)
         post = self.r.submission(id='5kgajm')
         with self.recorder.use_cassette('TestNotifier.test_action'):
-            actor.action(post, 'TGB', action_id=1)
+            actor.action(post, 'TGB')
             self.assertEqual(11, len(post.comments))
-            self.cur.execute('SELECT * FROM notifications WHERE action_id = 1')
-            self.assertIsNotNone(self.cur.fetchone())
 
 
 class TestNuker(BJOTest):
     def test_action(self):
-        actor = actors.Nuker(self.db, self.subreddit)
+        actor = actors.Nuker(self.subreddit)
         post = self.r.comment(id='dbnpgmz')
         with self.recorder.use_cassette('TestNuker.test_action'):
-            actor.action(post, 'TGB', action_id=1)
+            actor.action(post, 'TGB')
             child = self.r.comment(id='dbpa8kn')
             child.refresh()
             self.assertIsNotNone(child.banned_by)
@@ -83,11 +79,11 @@ class TestAutomodDomainWatcher(BJOTest):
     def test_action(self):
         buffer = actors.AutomodWatcherActionBuffer(self.subreddit)
         actor = actors.AutomodDomainWatcher('test-placeholder', buffer,
-                                            self.db, self.subreddit)
+                                            self.subreddit)
         post = self.r.submission(id='5kgajm')
         with self.recorder.use_cassette(
                 'TestAutomodDomainWatcher.test_action'):
-            actor.action(post, 'TGB', action_id=1)
+            actor.action(post, 'TGB')
             placeholder_buffer = buffer.placeholder_dict['test-placeholder']
             self.assertEqual(1,
                              len(placeholder_buffer))
@@ -96,11 +92,11 @@ class TestAutomodDomainWatcher(BJOTest):
 class TestAutomodUserWatcher(BJOTest):
     def test_action(self):
         buffer = actors.AutomodWatcherActionBuffer(self.subreddit)
-        actor = actors.AutomodUserWatcher('test-placeholder', buffer, self.db,
+        actor = actors.AutomodUserWatcher('test-placeholder', buffer,
                                           self.subreddit)
         post = self.r.comment(id='dbnpgmz')
         with self.recorder.use_cassette('TestAutomodUserWatcher.test_action'):
-            actor.action(post, 'TGB', action_id=1)
+            actor.action(post, 'TGB')
             placeholder_buffer = buffer.placeholder_dict['test-placeholder']
             self.assertEqual(1,
                              len(placeholder_buffer))

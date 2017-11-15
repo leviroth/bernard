@@ -41,15 +41,3 @@ CREATE TABLE subreddit_moderator(
   FOREIGN KEY(subreddit_id) REFERENCES subreddits(id),
   FOREIGN KEY(moderator_id) REFERENCES users(id)
 );
-
-CREATE TABLE removals(
-  action_id INTEGER PRIMARY KEY,
-  reinstated INTEGER DEFAULT 0,
-  FOREIGN KEY(action_id) REFERENCES actions(id)
-);
-
-CREATE TABLE notifications(
-  comment_id INTEGER PRIMARY KEY,
-  action_id INTEGER,
-  FOREIGN KEY(action_id) REFERENCES actions(id)
-);
