@@ -1,5 +1,7 @@
 import pytest
 
+from bernard.actors import (AutomodDomainWatcher, AutomodUserWatcher, Banner,
+                            Notifier, Nuker, ToolboxNoteAdder)
 from bernard.loader import load_yaml_config
 
 from .helper import BJOTest
@@ -19,27 +21,50 @@ class SystemTest(BJOTest):
                 for interaction in self.recorder.current_cassette.interactions)
         rows = self.db.execute('SELECT * FROM actions').fetchall()
         assert len(rows) == 1
+        return browser
 
     def test_automod_domain_watcher(self):
-        self.basic_test('AutomodDomainWatcher')
+        browser = self.basic_test('AutomodDomainWatcher')
+        assert any(
+            isinstance(actor, AutomodDomainWatcher)
+            for actor in browser.rules[0].actors)
 
     def test_automod_hybrid_watcher(self):
-        self.basic_test('AutomodHybridWatcher')
+        browser = self.basic_test('AutomodHybridWatcher')
+        assert any(
+            isinstance(actor, AutomodDomainWatcher)
+            for actor in browser.rules[0].actors)
+        assert any(
+            isinstance(actor, AutomodUserWatcher)
+            for actor in browser.rules[0].actors)
 
     def test_automod_user_watcher(self):
-        self.basic_test('AutomodUserWatcher')
+        browser = self.basic_test('AutomodUserWatcher')
+        assert any(
+            isinstance(actor, AutomodUserWatcher)
+            for actor in browser.rules[0].actors)
 
     def test_banner(self):
-        self.basic_test('Banner')
+        browser = self.basic_test('Banner')
+        assert any(
+            isinstance(actor, Banner) for actor in browser.rules[0].actors)
 
     def test_notifier(self):
-        self.basic_test('Notifier')
+        browser = self.basic_test('Notifier')
+        assert any(
+            isinstance(actor, Notifier) for actor in browser.rules[0].actors)
 
     def test_nuker(self):
-        self.basic_test('Nuker')
+        browser = self.basic_test('Nuker')
+        assert any(
+            isinstance(actor, Nuker) for actor in browser.rules[0].actors)
 
     def test_removal(self):
-        self.basic_test('Removal')
+        browser = self.basic_test('Removal')
+        assert browser.rules[0].remove
 
     def test_usernote(self):
-        self.basic_test('Usernote')
+        browser = self.basic_test('Usernote')
+        assert any(
+            isinstance(actor, ToolboxNoteAdder)
+            for actor in browser.rules[0].actors)
