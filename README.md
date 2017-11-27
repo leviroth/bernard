@@ -30,35 +30,75 @@ a
 
 ## Usage ##
 
-    python -m bernard [command_config_file] [database]
+    python -m bernard [config_directory] [database]
 
 ## Configuration ##
 
-Configuration is not currently well-documented, but much can be gleaned from the
-`examples/` directory. Separate files are used for the reddit API login
-information (JSON) and the command configuration (YAML).
+The bot is configured via YAML files, one per subreddit. You can find an example
+file in the `examples/` directory; given a directory containing the file
+`thirdrealm.yaml`, the bot loads a configuration for the subreddit
+`/r/ThirdRealm`.
 
-Please note that the bot performs no validation of these configuration files.
-You should not try to load configurations from untrusted sources, and even with
-trusted sources you'll want to monitor startup to make sure that nothing has
-crashed. Some basic validation can be performed manually via `schema.yaml`
-and [pyKwalify](https://github.com/Grokzen/pykwalify).
+A configuration file consists of a series of YAML documents, each one generating
+a rule.
 
-The per-subreddit `default_post_actions` and `default_comment_actions` keys
-allow automatic loading of the following defaults:
+A rule configuration is a dictionary with three keys: `info`, `trigger`, and
+`actions`.
 
-  - For
-    each
-    [subreddit rule](https://www.reddit.com/r/modnews/comments/42o2i0/moderators_subreddit_rules_now_available_for_all/) affecting
-    posts, moderator reports using that rule as the report reason will result in
-    the post being removed, the rule being posted as a notification, and a
-    usernote being added for the user. These actions are also triggered by the
-    commands `[i]` and `rule [i]`, where `[i]` is the number of the rule as it
-    appears on the rules page.
-  
-  - For the *i*th comment-specific rule, the command `n [i]` or `nuke [i]`
-    removes the comment and all its replies, adds a warning to follow the rule
-    in question, and adds a usernote.
+### `info` configuration ###
+
+Sample:
+
+```yaml
+info:
+  name: Removed
+  details: Question
+```
+
+The `info` block accepts `name` and `details` strings that summarize the rule.
+
+### `trigger` configuration ###
+
+Sample:
+
+```yaml
+trigger:
+  commands:
+  - question
+  - q
+  types:
+  - post
+```
+
+The `trigger` block accepts a list of `commands`, which are strings that match
+reports, and `types`, a list that can contain `post` and/or `comment`. In this
+example, any post (but not comment) that is reported with the strings `question`
+or `q` will be targeted for the action.
+
+## `actions` configuration ##
+
+Sample:
+
+```yaml
+actions:
+- remove
+- notify:
+    text: 'Questions are best directed to /r/askphilosophy,  which specializes in
+      answers to philosophical questions!'
+- usernote:
+    level: abusewarn
+    text: Removed (question)
+```
+
+The `actions` block contains a list of action configurations. An action
+configuration is either the name of an action, or else a dictionary wherein the
+key is the name of the action and the value is a dictionary of parameters. The
+parameters vary according to action, as described in the following section. If
+the action is given as a string, then the parameters default to empty.
+
+In this example, our rule performs three actions. The post is removed, a
+notification is added explaining the removal, and a Reddit Moderator Toolbox
+usernote is added to the submitter.
 
 ## Actions ##
 
