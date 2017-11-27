@@ -1,3 +1,5 @@
+from contextlib import redirect_stderr
+from io import StringIO
 import pytest
 
 from bernard.actors import (AutomodDomainWatcher, AutomodUserWatcher, Banner,
@@ -15,7 +17,10 @@ class SystemTest(BJOTest):
             browser = load_yaml_config(
                 self.db, self.subreddit,
                 './test/configs/{}Config.yaml'.format(test_name))
-            browser.run()
+            temp_stderr = StringIO()
+            with redirect_stderr(temp_stderr):
+                browser.run()
+            assert temp_stderr.getvalue() == ""
             assert all(
                 interaction.used
                 for interaction in self.recorder.current_cassette.interactions)
