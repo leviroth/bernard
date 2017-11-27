@@ -6,6 +6,5 @@ trigger:
   commands: [w]
   types: [post]
 actions:
-  - remove
   - notify:
       text: "Please keep our rules in mind!"
