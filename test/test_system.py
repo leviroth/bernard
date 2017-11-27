@@ -10,11 +10,13 @@ pytestmark = pytest.mark.system
 class SystemTest(BJOTest):
     def basic_test(self, test_name):
         loader = YAMLLoader(self.db, self.r)
-        with self.recorder.use_cassette(
-                'Test{}.system'.format(test_name)):
+        with self.recorder.use_cassette('Test{}.system'.format(test_name)):
             browsers = loader.load(
                 './test/configs/{}Config.yaml'.format(test_name))
             browsers[0].run()
+            assert all(
+                interaction.used
+                for interaction in self.recorder.current_cassette.interactions)
         rows = self.db.execute('SELECT * FROM actions').fetchall()
         assert len(rows) == 1
 

@@ -52,63 +52,6 @@
       }
     },
     {
-      "recorded_at": "2017-06-25T00:31:27",
-      "request": {
-        "body": {
-          "encoding": "utf-8",
-          "string": ""
-        },
-        "headers": {
-          "Accept": "*/*",
-          "Accept-Encoding": "identity",
-          "Authorization": "bearer <ACCESS_TOKEN>",
-          "Connection": "keep-alive",
-          "Cookie": "edgebucket=sLTiINNGD8XE9yWLzu; session_tracker=DoBFzDH5Nu4d2jzNLx.0.1498350687037.Z0FBQUFBQlpUd1JmOEZPZ2NlQzVCTnY1WnNXVzdUZG1rcFMxamZYTmRpZW5BQ1d4akVVMHExUkRzSkxGamduS1VCYkFlUktCSWV2V2w3elotRVJoSWxGZVdORWE3VGVRVFNGSUtMQnkxS0ZPOTFHMG1jVGZHTHhYTFdJcVZQUjY0LTE4aVhmcmR5aUM",
-          "User-Agent": "Tests for BernardJOrtcutt - levimroth@gmail.com PRAW/4.5.1 prawcore/0.10.1"
-        },
-        "method": "GET",
-        "uri": "https://oauth.reddit.com/r/thirdrealm/about/rules?raw_json=1"
-      },
-      "response": {
-        "body": {
-          "encoding": "UTF-8",
-          "string": "{\"rules\": [{\"kind\": \"all\", \"description\": \"foobar\", \"short_name\": \"blah blah blah\", \"violation_reason\": \"bazinga\", \"created_utc\": 1453790512.0, \"priority\": 0, \"description_html\": \"\\u003C!-- SC_OFF --\\u003E\\u003Cdiv class=\\\"md\\\"\\u003E\\u003Cp\\u003Efoobar\\u003C/p\\u003E\\n\\u003C/div\\u003E\\u003C!-- SC_ON --\\u003E\"}, {\"kind\": \"comment\", \"description\": \"bar\", \"short_name\": \"foo\", \"violation_reason\": \"foo\", \"created_utc\": 1465781914.0, \"priority\": 1, \"description_html\": \"\\u003C!-- SC_OFF --\\u003E\\u003Cdiv class=\\\"md\\\"\\u003E\\u003Cp\\u003Ebar\\u003C/p\\u003E\\n\\u003C/div\\u003E\\u003C!-- SC_ON --\\u003E\"}, {\"kind\": \"all\", \"description\": \"It has some **markdown**.\", \"short_name\": \"This is a sample rule.\", \"violation_reason\": \"This is a sample rule.\", \"created_utc\": 1479179608.0, \"priority\": 2, \"description_html\": \"\\u003C!-- SC_OFF --\\u003E\\u003Cdiv class=\\\"md\\\"\\u003E\\u003Cp\\u003EIt has some \\u003Cstrong\\u003Emarkdown\\u003C/strong\\u003E.\\u003C/p\\u003E\\n\\u003C/div\\u003E\\u003C!-- SC_ON --\\u003E\"}], \"site_rules\": [\"Spam\", \"Personal and confidential information\", \"Threatening, harassing, or inciting violence\"]}"
-        },
-        "headers": {
-          "Accept-Ranges": "bytes",
-          "Connection": "keep-alive",
-          "Content-Length": "1104",
-          "Content-Type": "application/json; charset=UTF-8",
-          "Date": "Sun, 25 Jun 2017 00:31:27 GMT",
-          "Server": "snooserv",
-          "Strict-Transport-Security": "max-age=15552000; includeSubDomains; preload",
-          "Vary": "accept-encoding",
-          "Via": "1.1 varnish",
-          "X-Cache": "MISS",
-          "X-Cache-Hits": "0",
-          "X-Moose": "majestic",
-          "X-Served-By": "cache-ord1739-ORD",
-          "X-Timer": "S1498350688.571371,VS0,VE58",
-          "cache-control": "private, s-maxage=0, max-age=0, must-revalidate, max-age=0, must-revalidate",
-          "expires": "-1",
-          "set-cookie": "loid=0000000000000xw27h.2.1463097178233.Z0FBQUFBQlpUd1JmamZtaEhrT2M5UFVRcFRfdnVlbjQyRGcwVWNzY0JUbHV0Q0NVZ1ZyRE9pWldsT3ZNQ0x5cTVxX2M1SkM4TXkwbkgwZXV3V19YSDdUT1FZZU10blh6cU14SFVjVTQ5TDY3N25zeDZCRi1CaFpvZ2NGc3NvZEFqb01KcG9aSk9BRlQ; Domain=reddit.com; Max-Age=63071999; Path=/; expires=Tue, 25-Jun-2019 00:31:27 GMT; secure",
-          "x-content-type-options": "nosniff",
-          "x-frame-options": "SAMEORIGIN",
-          "x-ratelimit-remaining": "599.0",
-          "x-ratelimit-reset": "513",
-          "x-ratelimit-used": "1",
-          "x-reddit-tracking": "https://pixel.redditmedia.com/pixel/of_destiny.png?v=qZ6iZJgRJdWlk1U2HTqt7Gr9096dODIgc%2BwwH9G%2BKGXzhZNhfHQy42H9jKIlYHPLJCg069m69nIzXpBp070CX5oMKJTGIr7O",
-          "x-ua-compatible": "IE=edge",
-          "x-xss-protection": "1; mode=block"
-        },
-        "status": {
-          "code": 200,
-          "message": "OK"
-        },
-        "url": "https://oauth.reddit.com/r/thirdrealm/about/rules?raw_json=1"
-      }
-    },
-    {
       "recorded_at": "2017-06-25T00:31:28",
       "request": {
         "body": {
