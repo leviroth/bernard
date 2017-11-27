@@ -6,7 +6,6 @@ trigger:
   commands: [n]
   types: [post, comment]
 actions:
-  - remove
   - usernote:
       text: "Believes the concept 'horse' is a concept"
       level: "abusewarn"
