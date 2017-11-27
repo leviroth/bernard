@@ -52,62 +52,6 @@
       }
     },
     {
-      "recorded_at": "2017-10-17T22:33:04",
-      "request": {
-        "body": {
-          "encoding": "utf-8",
-          "string": ""
-        },
-        "headers": {
-          "Accept": "*/*",
-          "Accept-Encoding": "identity",
-          "Authorization": "bearer <ACCESS_TOKEN>",
-          "Connection": "keep-alive",
-          "Cookie": "edgebucket=hFhIU5QxWGcvwVx5sn; session_tracker=pB7y638sUKaaRAr4KK.0.1508279586528.Z0FBQUFBQlo1b1Vpa1QwUGk1UTNHelRLMzg0NDhzU2hSUkxlS3h5V1I3TDNMTVoxWFVmZEhaNGJaU3dzZVRlaERpMm82OHJaWlFud05VLWJDR045WkM0bGpYTXMzRkllTnRyRklxR2F4c1J4UTFaTTVSNktUMkp2bEFNdGxLQ1VxVnJQa1YxOFlNV0M",
-          "User-Agent": "<USER_AGENT> PRAW/5.1.0 prawcore/0.12.0"
-        },
-        "method": "GET",
-        "uri": "https://oauth.reddit.com/r/thirdrealm/about/rules?raw_json=1"
-      },
-      "response": {
-        "body": {
-          "encoding": "UTF-8",
-          "string": "{\"rules\": [{\"kind\": \"all\", \"description\": \"foobar\", \"short_name\": \"blah blah blah\", \"violation_reason\": \"bazinga\", \"created_utc\": 1453790512.0, \"priority\": 0, \"description_html\": \"\\u003C!-- SC_OFF --\\u003E\\u003Cdiv class=\\\"md\\\"\\u003E\\u003Cp\\u003Efoobar\\u003C/p\\u003E\\n\\u003C/div\\u003E\\u003C!-- SC_ON --\\u003E\"}, {\"kind\": \"comment\", \"description\": \"bar\", \"short_name\": \"foo\", \"violation_reason\": \"foo\", \"created_utc\": 1465781914.0, \"priority\": 1, \"description_html\": \"\\u003C!-- SC_OFF --\\u003E\\u003Cdiv class=\\\"md\\\"\\u003E\\u003Cp\\u003Ebar\\u003C/p\\u003E\\n\\u003C/div\\u003E\\u003C!-- SC_ON --\\u003E\"}, {\"kind\": \"all\", \"description\": \"It has some **markdown**.\", \"short_name\": \"This is a sample rule.\", \"violation_reason\": \"This is a sample rule.\", \"created_utc\": 1479179608.0, \"priority\": 2, \"description_html\": \"\\u003C!-- SC_OFF --\\u003E\\u003Cdiv class=\\\"md\\\"\\u003E\\u003Cp\\u003EIt has some \\u003Cstrong\\u003Emarkdown\\u003C/strong\\u003E.\\u003C/p\\u003E\\n\\u003C/div\\u003E\\u003C!-- SC_ON --\\u003E\"}], \"site_rules\": [\"Spam\", \"Personal and confidential information\", \"Threatening, harassing, or inciting violence\"]}"
-        },
-        "headers": {
-          "Accept-Ranges": "bytes",
-          "Connection": "keep-alive",
-          "Content-Length": "1104",
-          "Content-Type": "application/json; charset=UTF-8",
-          "Date": "Tue, 17 Oct 2017 22:33:07 GMT",
-          "Server": "snooserv",
-          "Strict-Transport-Security": "max-age=15552000; includeSubDomains; preload",
-          "Vary": "accept-encoding",
-          "Via": "1.1 varnish",
-          "X-Cache": "MISS",
-          "X-Cache-Hits": "0",
-          "X-Moose": "majestic",
-          "X-Served-By": "cache-jfk8122-JFK",
-          "X-Timer": "S1508279587.944728,VS0,VE67",
-          "cache-control": "private, s-maxage=0, max-age=0, must-revalidate, max-age=0, must-revalidate",
-          "expires": "-1",
-          "set-cookie": "loid=00000000000003221r.2.1198343131434.Z0FBQUFBQlo1b1VpQTRBUEpYdDMyUGI1U3Jic3ItNkRaSDU4S20tQlJjVTYtV1V3VjMyZzAtTHloRnphLTg2dVRQU2RYS1lMVXlqT3M2aU5JdHRFZERHdl9TRkV4Q3dzaWtmNW93YUtBd3N5Z0ZRR2MxYzVqMU5mN2dFX2o2WU40dWhUd0NmOUpabW0; Domain=reddit.com; Max-Age=63071999; Path=/; expires=Thu, 17-Oct-2019 22:33:06 GMT; secure",
-          "x-content-type-options": "nosniff",
-          "x-frame-options": "SAMEORIGIN",
-          "x-ratelimit-remaining": "599.0",
-          "x-ratelimit-reset": "414",
-          "x-ratelimit-used": "1",
-          "x-ua-compatible": "IE=edge",
-          "x-xss-protection": "1; mode=block"
-        },
-        "status": {
-          "code": 200,
-          "message": "OK"
-        },
-        "url": "https://oauth.reddit.com/r/thirdrealm/about/rules?raw_json=1"
-      }
-    },
-    {
       "recorded_at": "2017-10-17T22:33:05",
       "request": {
         "body": {

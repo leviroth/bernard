@@ -63,63 +63,6 @@
           "Accept-Encoding": "identity",
           "Authorization": "bearer <ACCESS_TOKEN>",
           "Connection": "keep-alive",
-          "Cookie": "edgebucket=QBjkprtyWhoHls2Bzm; session_tracker=tsYobnCKhDvgsYqD1J.0.1508278490768.Z0FBQUFBQlo1b0RiVHhOendJLXRvS1F5bUVVQkVDaThTRVhITDdEYW9iOEV2WGlUMGQ5eGFkb1ZTNVQ3MG5NMkk1dHhSWVRUS2swVjBPTFFUYWZaU242R0RRbFplR3NqVzI3UXNUYlVXTFVYNk1NQ2JBRWNqeXQ1NUJxSzNNbkxEamZkbkZuZ2d6cGY",
-          "User-Agent": "<USER_AGENT> PRAW/5.1.0 prawcore/0.12.0"
-        },
-        "method": "GET",
-        "uri": "https://oauth.reddit.com/r/thirdrealm/about/rules?raw_json=1"
-      },
-      "response": {
-        "body": {
-          "encoding": "UTF-8",
-          "string": "{\"rules\": [{\"kind\": \"all\", \"description\": \"foobar\", \"short_name\": \"blah blah blah\", \"violation_reason\": \"bazinga\", \"created_utc\": 1453790512.0, \"priority\": 0, \"description_html\": \"\\u003C!-- SC_OFF --\\u003E\\u003Cdiv class=\\\"md\\\"\\u003E\\u003Cp\\u003Efoobar\\u003C/p\\u003E\\n\\u003C/div\\u003E\\u003C!-- SC_ON --\\u003E\"}, {\"kind\": \"comment\", \"description\": \"bar\", \"short_name\": \"foo\", \"violation_reason\": \"foo\", \"created_utc\": 1465781914.0, \"priority\": 1, \"description_html\": \"\\u003C!-- SC_OFF --\\u003E\\u003Cdiv class=\\\"md\\\"\\u003E\\u003Cp\\u003Ebar\\u003C/p\\u003E\\n\\u003C/div\\u003E\\u003C!-- SC_ON --\\u003E\"}, {\"kind\": \"all\", \"description\": \"It has some **markdown**.\", \"short_name\": \"This is a sample rule.\", \"violation_reason\": \"This is a sample rule.\", \"created_utc\": 1479179608.0, \"priority\": 2, \"description_html\": \"\\u003C!-- SC_OFF --\\u003E\\u003Cdiv class=\\\"md\\\"\\u003E\\u003Cp\\u003EIt has some \\u003Cstrong\\u003Emarkdown\\u003C/strong\\u003E.\\u003C/p\\u003E\\n\\u003C/div\\u003E\\u003C!-- SC_ON --\\u003E\"}], \"site_rules\": [\"Spam\", \"Personal and confidential information\", \"Threatening, harassing, or inciting violence\"]}"
-        },
-        "headers": {
-          "Accept-Ranges": "bytes",
-          "Connection": "keep-alive",
-          "Content-Length": "1104",
-          "Content-Type": "application/json; charset=UTF-8",
-          "Date": "Tue, 17 Oct 2017 22:14:51 GMT",
-          "Server": "snooserv",
-          "Strict-Transport-Security": "max-age=15552000; includeSubDomains; preload",
-          "Vary": "accept-encoding",
-          "Via": "1.1 varnish",
-          "X-Cache": "MISS",
-          "X-Cache-Hits": "0",
-          "X-Moose": "majestic",
-          "X-Served-By": "cache-jfk8141-JFK",
-          "X-Timer": "S1508278491.173400,VS0,VE75",
-          "cache-control": "private, s-maxage=0, max-age=0, must-revalidate, max-age=0, must-revalidate",
-          "expires": "-1",
-          "set-cookie": "loid=00000000000003221r.2.1198343131434.Z0FBQUFBQlo1b0RicDJ6UmFTUlphMlZucDdUdHc2U2pSbC15ejQ0a1hKWS1HOEFPZkZSc3BkTmhNaC1LNkpnZlZTUlFDamU3UVFQeFAxLXp0RWgtUUdvZG9NU2U2Sm93aVRTN21jYW56bFdzNzd1YjdkTnJUUTJQY096bFhqYzl1NnVXZ1k0Z245Mkc; Domain=reddit.com; Max-Age=63071999; Path=/; expires=Thu, 17-Oct-2019 22:14:51 GMT; secure",
-          "x-content-type-options": "nosniff",
-          "x-frame-options": "SAMEORIGIN",
-          "x-ratelimit-remaining": "594.0",
-          "x-ratelimit-reset": "309",
-          "x-ratelimit-used": "6",
-          "x-reddit-tracking": "https://pixel.redditmedia.com/pixel/of_destiny.png?v=%2BjajBSos6PqxpsBJtPj%2BmxXSd7Xx%2BbMGdpRfNmna0%2FRAI4tdlPzI2MB1VMKJvqP9jBsC6sq1jxd8uYvs0FxbJvO23VKtiyj6",
-          "x-ua-compatible": "IE=edge",
-          "x-xss-protection": "1; mode=block"
-        },
-        "status": {
-          "code": 200,
-          "message": "OK"
-        },
-        "url": "https://oauth.reddit.com/r/thirdrealm/about/rules?raw_json=1"
-      }
-    },
-    {
-      "recorded_at": "2017-10-17T22:14:49",
-      "request": {
-        "body": {
-          "encoding": "utf-8",
-          "string": ""
-        },
-        "headers": {
-          "Accept": "*/*",
-          "Accept-Encoding": "identity",
-          "Authorization": "bearer <ACCESS_TOKEN>",
-          "Connection": "keep-alive",
           "Cookie": "edgebucket=QBjkprtyWhoHls2Bzm; loid=00000000000003221r.2.1198343131434.Z0FBQUFBQlo1b0RicDJ6UmFTUlphMlZucDdUdHc2U2pSbC15ejQ0a1hKWS1HOEFPZkZSc3BkTmhNaC1LNkpnZlZTUlFDamU3UVFQeFAxLXp0RWgtUUdvZG9NU2U2Sm93aVRTN21jYW56bFdzNzd1YjdkTnJUUTJQY096bFhqYzl1NnVXZ1k0Z245Mkc; session_tracker=tsYobnCKhDvgsYqD1J.0.1508278491162.Z0FBQUFBQlo1b0RiWlE5cDhDaGdNTlVxVW5LN0FEMmFnSDFmQmdDaGptS2xNVzI1X1FlZDQyb2JnZm1vdWwzMFBaVlJWNmptSm5jRmV1NkZWS3RLb3VoWERKQ1NEUUk1dWE5b0lkMHNlN0dTeXNDZkF6MW5JSk5FQU50SlJKU0puRlI4RDFpYUEtelg",
           "User-Agent": "<USER_AGENT> PRAW/5.1.0 prawcore/0.12.0"
         },

@@ -63,63 +63,6 @@
           "Accept-Encoding": "identity",
           "Authorization": "bearer <ACCESS_TOKEN>",
           "Connection": "keep-alive",
-          "Cookie": "edgebucket=tcfLm3DAX9yNpvfPAC; session_tracker=myRHWWv51HCUZyzmlk.0.1498351754538.Z0FBQUFBQlpUd2lLVHJiSGxTbElyZnFGdzhMc294Q3JoOGw1akNyQk9HRnJ4NGhXX0lCZGxIanVEMTNoLUdBQThxQWlSQTBZMXNjUkpxNjFxVnhZelJqZlZQVmN0bldIWl9USHJCbE5iRDVpSng0cWRPQUdqSnhfWnpIb3JXbTZ3VFA2TmdhLTFXdGc",
-          "User-Agent": "Tests for BernardJOrtcutt - levimroth@gmail.com PRAW/4.5.1 prawcore/0.10.1"
-        },
-        "method": "GET",
-        "uri": "https://oauth.reddit.com/r/thirdrealm/about/rules?raw_json=1"
-      },
-      "response": {
-        "body": {
-          "encoding": "UTF-8",
-          "string": "{\"rules\": [{\"kind\": \"all\", \"description\": \"foobar\", \"short_name\": \"blah blah blah\", \"violation_reason\": \"bazinga\", \"created_utc\": 1453790512.0, \"priority\": 0, \"description_html\": \"\\u003C!-- SC_OFF --\\u003E\\u003Cdiv class=\\\"md\\\"\\u003E\\u003Cp\\u003Efoobar\\u003C/p\\u003E\\n\\u003C/div\\u003E\\u003C!-- SC_ON --\\u003E\"}, {\"kind\": \"comment\", \"description\": \"bar\", \"short_name\": \"foo\", \"violation_reason\": \"foo\", \"created_utc\": 1465781914.0, \"priority\": 1, \"description_html\": \"\\u003C!-- SC_OFF --\\u003E\\u003Cdiv class=\\\"md\\\"\\u003E\\u003Cp\\u003Ebar\\u003C/p\\u003E\\n\\u003C/div\\u003E\\u003C!-- SC_ON --\\u003E\"}, {\"kind\": \"all\", \"description\": \"It has some **markdown**.\", \"short_name\": \"This is a sample rule.\", \"violation_reason\": \"This is a sample rule.\", \"created_utc\": 1479179608.0, \"priority\": 2, \"description_html\": \"\\u003C!-- SC_OFF --\\u003E\\u003Cdiv class=\\\"md\\\"\\u003E\\u003Cp\\u003EIt has some \\u003Cstrong\\u003Emarkdown\\u003C/strong\\u003E.\\u003C/p\\u003E\\n\\u003C/div\\u003E\\u003C!-- SC_ON --\\u003E\"}], \"site_rules\": [\"Spam\", \"Personal and confidential information\", \"Threatening, harassing, or inciting violence\"]}"
-        },
-        "headers": {
-          "Accept-Ranges": "bytes",
-          "Connection": "keep-alive",
-          "Content-Length": "1104",
-          "Content-Type": "application/json; charset=UTF-8",
-          "Date": "Sun, 25 Jun 2017 00:49:15 GMT",
-          "Server": "snooserv",
-          "Strict-Transport-Security": "max-age=15552000; includeSubDomains; preload",
-          "Vary": "accept-encoding",
-          "Via": "1.1 varnish",
-          "X-Cache": "MISS",
-          "X-Cache-Hits": "0",
-          "X-Moose": "majestic",
-          "X-Served-By": "cache-ord1747-ORD",
-          "X-Timer": "S1498351755.055899,VS0,VE55",
-          "cache-control": "private, s-maxage=0, max-age=0, must-revalidate, max-age=0, must-revalidate",
-          "expires": "-1",
-          "set-cookie": "loid=0000000000000xw27h.2.1463097178233.Z0FBQUFBQlpUd2lMNHVRNEZMVFQ0RzZQN1dody0xemEyRDVkMGQ5NWZURXg3TU44c3dxVlpGOW40ZGlPYWJUOHFvRDdjaW9rc08wWVhSSFc2c2ZpRVh3cXJneGFqX2EyVTRtaVROcHcwS2FFSzQ5d1BkcGlTSWpzLXVZNy1kQ0VRU2RiUldmTlBKbEI; Domain=reddit.com; Max-Age=63071999; Path=/; expires=Tue, 25-Jun-2019 00:49:15 GMT; secure",
-          "x-content-type-options": "nosniff",
-          "x-frame-options": "SAMEORIGIN",
-          "x-ratelimit-remaining": "599.0",
-          "x-ratelimit-reset": "45",
-          "x-ratelimit-used": "1",
-          "x-reddit-tracking": "https://pixel.redditmedia.com/pixel/of_destiny.png?v=uLdXKAcu2X4lqcskTpGuzcTBUnyPmRJqot99PNwbI59qeBM1ed7SoqnKZYeg63BbnZCt5t%2FXulCEhj9ozT%2BPBtHaj%2BN3k2u4",
-          "x-ua-compatible": "IE=edge",
-          "x-xss-protection": "1; mode=block"
-        },
-        "status": {
-          "code": 200,
-          "message": "OK"
-        },
-        "url": "https://oauth.reddit.com/r/thirdrealm/about/rules?raw_json=1"
-      }
-    },
-    {
-      "recorded_at": "2017-06-25T00:49:15",
-      "request": {
-        "body": {
-          "encoding": "utf-8",
-          "string": ""
-        },
-        "headers": {
-          "Accept": "*/*",
-          "Accept-Encoding": "identity",
-          "Authorization": "bearer <ACCESS_TOKEN>",
-          "Connection": "keep-alive",
           "Cookie": "edgebucket=tcfLm3DAX9yNpvfPAC; loid=0000000000000xw27h.2.1463097178233.Z0FBQUFBQlpUd2lMNHVRNEZMVFQ0RzZQN1dody0xemEyRDVkMGQ5NWZURXg3TU44c3dxVlpGOW40ZGlPYWJUOHFvRDdjaW9rc08wWVhSSFc2c2ZpRVh3cXJneGFqX2EyVTRtaVROcHcwS2FFSzQ5d1BkcGlTSWpzLXVZNy1kQ0VRU2RiUldmTlBKbEI; session_tracker=myRHWWv51HCUZyzmlk.0.1498351755080.Z0FBQUFBQlpUd2lMUE1LQ0wycnl5N2k0eHZkNWhoMmE1eFRJSC1vZ3VpZTBoV2Jwejc0bFVRalB2YXVwSjF5LWhBdXRDeUVfZk95NHFORy1POEQ1ZmFIaWs1M0p2ZkhwNHk2bEl0c2w0dEtLNjZUbFVqaHJhYXNqelVpcFFzTHNHWXJPZTRBaTNiSHQ",
           "User-Agent": "Tests for BernardJOrtcutt - levimroth@gmail.com PRAW/4.5.1 prawcore/0.10.1"
         },
