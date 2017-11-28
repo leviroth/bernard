@@ -7,3 +7,4 @@
 * Added 'domainwatch' to add post domains to AutoMod configuration.
 * Removed legacy default configuration loader
 * Removed notifications and removals from database
+* Changed configuration format
