@@ -1,9 +1,9 @@
 """Entry point for the bot."""
 import logging
-import os
 import sqlite3
 import sys
 import time
+from pathlib import Path
 
 import praw
 import prawcore
@@ -27,13 +27,10 @@ def main():
     cursor = database.cursor()
 
     browsers = []
-    for filename in os.listdir(conf_dir):
-        sub_name, ending = filename.rsplit('.', 1)
-        if ending != "yaml":
-            continue
-
+    for config_file in Path(conf_dir).glob('*.yaml'):
+        sub_name, _ = config_file.name.rsplit('.', 1)
         subreddit = reddit.subreddit(sub_name)
-        browsers.append(load_yaml_config(database, subreddit, filename))
+        browsers.append(load_yaml_config(database, subreddit, config_file))
     database.commit()
 
     print("Loaded")
