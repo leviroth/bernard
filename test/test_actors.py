@@ -1,5 +1,4 @@
 import praw
-import re
 from .helper import BJOTest
 from bernard import actors
 
@@ -9,7 +8,7 @@ class TestRule(BJOTest):
         super().setUp()
         notifier = actors.Notifier('A notifcation', self.subreddit)
         self.actor = actors.Rule(
-            trigger=re.compile('foo', re.I),
+            commands=['foo'],
             targets=[praw.models.Submission],
             remove=True,
             lock=True,

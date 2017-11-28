@@ -23,10 +23,10 @@ class Rule:
 
     """
 
-    def __init__(self, trigger, targets, remove, lock, actors, action_name,
+    def __init__(self, commands, targets, remove, lock, actors, action_name,
                  action_details, database, subreddit):
         """Initialize the Actor class."""
-        self.trigger = trigger
+        self.commands = commands
         self.targets = targets
         self.remove = remove
         self.lock = lock
@@ -37,9 +37,9 @@ class Rule:
         self.cursor = database.cursor()
         self.subreddit = subreddit
 
-    def match(self, command, thing):
+    def match(self, report, thing):
         """Return true if command matches and thing is the right type."""
-        return self.trigger.match(command) \
+        return any(report.casefold() == command for command in self.commands) \
             and any(isinstance(thing, target) for target in self.targets)
 
     def parse(self, command, mod, post):

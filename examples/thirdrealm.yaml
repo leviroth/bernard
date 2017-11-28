@@ -1,0 +1,81 @@
+---
+info:
+  name: Removed
+  details: Question
+trigger:
+  commands:
+  - question
+  - q
+  types:
+  - post
+actions:
+- remove
+- notify:
+    text: 'Questions are best directed to /r/askphilosophy,  which specializes in
+      answers to philosophical questions!'
+- usernote:
+    level: abusewarn
+    text: Removed (question)
+
+---
+info:
+  name: Banned
+  details: 3 day warning for psychologism
+trigger:
+  commands:
+  - p
+  - psych
+  - psychologism
+  types:
+  - post
+  - comment
+actions:
+- remove
+- ban:
+    duration: 3
+    message: 'Psychologism is looked upon with suspicion in /r/ThirdRealm. Take a
+      few days to reconsider your ontological commitments.'
+    reason: psychologism
+
+---
+info:
+  name: Watched
+  details: Suspected of being a spy
+trigger:
+  commands:
+  - watch
+  types:
+  - post
+  - comment
+actions:
+- remove
+- userwatch:
+    placeholder: do!not!remove!watchlist
+
+---
+info:
+  name: Domain banned
+  details: Regarded as spam
+trigger:
+  commands:
+  - ban domain
+  types:
+  - post
+actions:
+- remove
+- domainwatch:
+    placeholder: do!not!remove!domain
+
+---
+info:
+  name: Nuked
+  details: ''
+trigger:
+  commands:
+  - nuke
+  - n
+  types:
+  - comment
+actions:
+- remove
+- nuke
