@@ -84,9 +84,9 @@ def parse_subreddit_config(database, subreddit, config):
                            subreddit, database)
 
 
-def load_yaml_config(database, subreddit, filename):
+def load_yaml_config(database, subreddit, config_file):
     """Parse the given file and return a list of Browsers."""
-    with open(filename) as file:
+    with config_file.open() as file:
         config = yaml.safe_load_all(file)
         return parse_subreddit_config(database, subreddit, config)
 

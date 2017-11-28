@@ -1,5 +1,6 @@
 from contextlib import redirect_stderr
 from io import StringIO
+from pathlib import Path
 import pytest
 
 from bernard.actors import (AutomodDomainWatcher, AutomodUserWatcher, Banner,
@@ -16,7 +17,7 @@ class SystemTest(BJOTest):
         with self.recorder.use_cassette('Test{}.system'.format(test_name)):
             browser = load_yaml_config(
                 self.db, self.subreddit,
-                './test/configs/{}Config.yaml'.format(test_name))
+                Path('./test/configs/{}Config.yaml'.format(test_name)))
             temp_stderr = StringIO()
             with redirect_stderr(temp_stderr):
                 browser.run()
