@@ -10,6 +10,6 @@ python:
   - 3.6
 sudo: false
 script:
-  - flake8 --exclude=examples
+  - flake8
   - pydocstyle bernard
   - python setup.py test
