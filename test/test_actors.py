@@ -62,6 +62,12 @@ class TestNotifier(BJOTest):
             actor.action(post, 'TGB')
             self.assertEqual(11, len(post.comments))
 
+    def test_archived_target(self):
+        actor = actors.Notifier("sample_text", self.subreddit)
+        target = self.r.comment(id='djbaws1')
+        with self.recorder.use_cassette('TestNotifier.test_archived_target'):
+            actor.action(target, 'BJO')
+
 
 class TestNuker(BJOTest):
     def test_action(self):

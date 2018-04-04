@@ -248,6 +248,9 @@ class Notifier(Actor):
             logging.error("Failed to add comment on %s: %s", post.name,
                           exception)
             return
+        except praw.exceptions.APIException:
+            logging.error("Too old to reply: %s", post.name)
+            return
 
         try:
             result.mod.distinguish(sticky=isinstance(post,
