@@ -206,6 +206,29 @@ class Locker(Actor):
             logging.error("Failed to lock %s: %s", post, exception)
 
 
+class Modmailer(Actor):
+    """A class for sending modmail to authors."""
+
+    REQUIRED_TYPES = {'subject': str, 'body': str}
+    VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
+
+    def __init__(self, subject, body, *args, **kwargs):
+        """Initialie the Modmailer class."""
+        super().__init__(*args, **kwargs)
+        self.subject = subject
+        self.body = body
+
+    def action(self, post, mod):
+        """Add, distinguish, and (if top-level) sticky reply to target."""
+        try:
+            self.subreddit.modmail.create(self.subject, self.body,
+                                          post.author, author_hidden=True)
+        except prawcore.PrawcoreException as exception:
+            logging.error("Failed to send modmail on %s: %s", post.name,
+                          exception)
+            return
+
+
 class Notifier(Actor):
     """A class for replying to targets."""
 
@@ -213,7 +236,7 @@ class Notifier(Actor):
     VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
     def __init__(self, text, *args, **kwargs):
-        """Initialie the notifier class."""
+        """Initialize the Notifier class."""
         super().__init__(*args, **kwargs)
         self.text = text
 

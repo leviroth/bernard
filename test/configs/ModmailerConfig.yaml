@@ -1,0 +1,11 @@
+---
+info:
+  name: "Test modmailer"
+  details: "Testing"
+trigger:
+  commands: [mm]
+  types: [post]
+actions:
+  - modmail:
+      subject: "Modmail test"
+      body: "Please keep our rules in mind!"
