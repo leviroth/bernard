@@ -213,7 +213,7 @@ class Notifier(Actor):
     VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
 
     def __init__(self, text, *args, **kwargs):
-        """Initialie the notifier class."""
+        """Initialize the Notifier class."""
         super().__init__(*args, **kwargs)
         self.text = text
 
