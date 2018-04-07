@@ -2,9 +2,22 @@
 
 ## Unreleased 0.5.0 ##
 
-* Added option to leave removed post unlocked
-* Renamed 'wikiwatch' to 'userwatch' for configuration file.
+### Added ###
+
+* Added option to leave removed post unlocked.
 * Added 'domainwatch' to add post domains to AutoMod configuration.
-* Removed legacy default configuration loader
-* Removed notifications and removals from database
-* Changed configuration format
+* Added Modmailer actor.
+
+### Fixed ###
+
+* Fixed crashes on replying in archived threads.
+
+### Changed ###
+
+* Renamed 'wikiwatch' to 'userwatch' for configuration file.
+* Changed configuration format.
+
+### Removed ###
+
+* Removed legacy default configuration loader.
+* Removed notifications and removals from database.
