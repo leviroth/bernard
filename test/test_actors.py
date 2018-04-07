@@ -54,6 +54,14 @@ class TestBanner(BJOTest):
             self.assertIn(post.author, self.subreddit.banned())
 
 
+class TestModmailer(BJOTest):
+    def test_action(self):
+        actor = actors.Modmailer("Test subject", "Test body", self.subreddit)
+        post = self.r.submission(id='7fyr93')
+        with self.recorder.use_cassette('TestModmailer.test_action'):
+            actor.action(post, 'BJO')
+
+
 class TestNotifier(BJOTest):
     def test_action(self):
         actor = actors.Notifier("sample_text", self.subreddit)

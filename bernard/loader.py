@@ -13,6 +13,7 @@ _ACTOR_REGISTRY = {
     'ban': actors.Banner,
     'domainwatch': actors.AutomodDomainWatcher,
     'lock': actors.Locker,
+    'modmail': actors.Modmailer,
     'notify': actors.Notifier,
     'nuke': actors.Nuker,
     'usernote': actors.ToolboxNoteAdder,

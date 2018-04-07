@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from bernard.actors import (AutomodDomainWatcher, AutomodUserWatcher, Banner,
-                            Notifier, Nuker, ToolboxNoteAdder)
+                            Modmailer, Notifier, Nuker, ToolboxNoteAdder)
 from bernard.loader import load_yaml_config
 
 from .helper import BJOTest
@@ -54,6 +54,11 @@ class SystemTest(BJOTest):
         browser = self.basic_test('Banner')
         assert any(
             isinstance(actor, Banner) for actor in browser.rules[0].actors)
+
+    def test_Modmailer(self):
+        browser = self.basic_test('Modmailer')
+        assert any(
+            isinstance(actor, Modmailer) for actor in browser.rules[0].actors)
 
     def test_notifier(self):
         browser = self.basic_test('Notifier')
