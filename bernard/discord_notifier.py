@@ -16,5 +16,5 @@ class DiscordHandler(Handler):
         json = {'content': self.format(record)}
         try:
             requests.post(self.webhook, json=json)
-        except:
+        except requests.RequestException:
             self.handleError(record)
