@@ -9,6 +9,7 @@ import praw
 import prawcore
 
 from . import helpers
+from .discord_notifier import DiscordHandler
 from .loader import load_yaml_config
 
 USER_AGENT = "python:/r/Philosophy reporter:v0.4.0 (by levimroth@gmail.com)"
@@ -25,6 +26,12 @@ def main():
     reddit = praw.Reddit(user_agent=USER_AGENT)
     database = sqlite3.connect(db_file)
     cursor = database.cursor()
+
+    logging.basicConfig()
+    logging.raiseExceptions = False
+    webhook = reddit.config.custom['discord_webhook']
+    webhook_logger = DiscordHandler(webhook, level=logging.ERROR)
+    logging.getLogger().addHandler(webhook_logger)
 
     browsers = []
     for config_file in Path(conf_dir).glob('*.yaml'):
