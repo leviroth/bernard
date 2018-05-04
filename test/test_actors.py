@@ -76,6 +76,13 @@ class TestNotifier(BJOTest):
         with self.recorder.use_cassette('TestNotifier.test_archived_target'):
             actor.action(target, 'BJO')
 
+    def test_special_characters(self):
+        actor = actors.Notifier("sample_text", self.subreddit)
+        target = self.r.submission(id='8gz54v')
+        with self.recorder.use_cassette(
+                'TestNotifier.test_special_characters'):
+            actor.action(target, 'BJO')
+
 
 class TestNuker(BJOTest):
     def test_action(self):
