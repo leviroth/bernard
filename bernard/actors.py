@@ -245,15 +245,13 @@ class Notifier(Actor):
         base_reddit_url = self.subreddit._reddit.config.reddit_url
         sub_name = self.subreddit.display_name
 
-        # Escape twice because one will be undone by reddit when the link is
-        # clicked
-        escaped_url = urllib.parse.quote(urllib.parse.quote(url))
+        escaped_url = urllib.parse.quote(base_reddit_url + url)
 
         modmail_link = ("{base_url}/message/compose?to=%2Fr%2F{sub_name}"
                         "&message=Post%20in%20question:%20{url}").format(
                             base_url=base_reddit_url,
                             sub_name=sub_name,
-                            url=urllib.parse.quote(escaped_url))
+                            url=escaped_url)
 
         return (
             "\n\n-----\n\nI am a bot. Please do not reply to this message, as "
