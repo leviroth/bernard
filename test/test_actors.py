@@ -31,16 +31,18 @@ class TestRule(BJOTest):
 
     def test_parse(self):
         post = self.r.submission(id='5e7w80')
+        post_id = int('5e7w80', base=36)
+        self.assertFalse(self.actor._already_acted(3, post_id))
         with self.recorder.use_cassette('TestRule.test_parse'):
             self.actor.parse('foo', 'TGB', post)
             post = self.r.submission(id='5e7w80')
             self.assertIsNotNone(post.banned_by)
             self.assertTrue(post.locked)
-            post_id = int('5e7w80', base=36)
             self.cur.execute('SELECT action_summary FROM actions '
                              'WHERE target_type = 3 AND target_id = ?',
                              (post_id, ))
             summary, *_ = self.cur.fetchone()
+            self.assertTrue(self.actor._already_acted(3, post_id))
             self.assertEqual('Remove', summary)
 
 
