@@ -37,10 +37,12 @@ class Rule:
         self.cursor = database.cursor()
         self.subreddit = subreddit
 
-    def _already_acted(self, target_type, target_id):
-        self.cursor.execute('SELECT 1 FROM actions '
-                            'WHERE target_type = ? AND target_id = ?',
-                            (target_type, target_id))
+    def _already_acted(self, target_type, target_id, mod):
+        self.cursor.execute('SELECT 1 FROM actions INNER JOIN users '
+                            'ON actions.moderator = users.id '
+                            'WHERE target_type = ? AND target_id = ? '
+                            'AND users.username = ?',
+                            (target_type, target_id, str(mod)))
         return self.cursor.fetchone() is not None
 
     def match(self, report, thing):
@@ -54,7 +56,7 @@ class Rule:
             # Only act once on a given thing
             target_type, target_id = helpers.deserialize_thing_id(
                 post.fullname)
-            if self._already_acted(target_type, target_id):
+            if self._already_acted(target_type, target_id, mod):
                 return
 
             self.log_action(post, mod)
