@@ -5,7 +5,7 @@ import logging
 import time
 import urllib.parse
 import zlib
-from collections import namedtuple
+from collections import deque, namedtuple
 from xml.sax.saxutils import unescape
 
 import praw
@@ -286,6 +286,36 @@ class Notifier(Actor):
                           exception)
 
 
+class NukerActionBuffer(ActionBuffer):
+    """A buffer for enqueued comment removals."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the NukerActionBuffer class."""
+        super().__init__(*args, **kwargs)
+        self.actions = deque()
+
+    def add(self, comment):
+        """Enqueue a comment to be removed."""
+        self.actions.append(comment)
+
+    def after(self):
+        """Add a comment to the queue.
+
+        All comments in the queue will be removed, so it's probably best to
+        check if a comment is distinguished before adding it.
+
+        """
+        for _ in range(30):
+            if len(self.actions) == 0:
+                return
+            comment = self.actions.popleft()
+            try:
+                comment.mod.remove()
+            except prawcore.PrawcoreException as exception:
+                logging.error("Failed to remove comment %s: %s",
+                              comment.name, exception)
+
+
 class Nuker(Actor):
     """A class to recursiely remove replies.
 
@@ -294,7 +324,13 @@ class Nuker(Actor):
 
     """
 
+    ACTION_BUFFER = NukerActionBuffer
     VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
+
+    def __init__(self, action_buffer, *args, **kwargs):
+        """Initialize the Nuker class."""
+        super().__init__(*args, **kwargs)
+        self.action_buffer = action_buffer
 
     def action(self, post, mod):
         """Remove the replies."""
@@ -312,11 +348,7 @@ class Nuker(Actor):
 
         for comment in flat_tree:
             if comment.distinguished is None:
-                try:
-                    comment.mod.remove()
-                except prawcore.PrawcoreException as exception:
-                    logging.error("Failed to remove comment %s: %s",
-                                  comment.name, exception)
+                self.action_buffer.add(comment)
 
 
 class ToolboxNoteAdderActionBuffer(ActionBuffer):

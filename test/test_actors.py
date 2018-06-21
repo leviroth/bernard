@@ -89,7 +89,8 @@ class TestNotifier(BJOTest):
 
 class TestNuker(BJOTest):
     def test_action(self):
-        actor = actors.Nuker(self.subreddit)
+        action_buffer = actors.NukerActionBuffer(self.subreddit)
+        actor = actors.Nuker(action_buffer, self.subreddit)
         post = self.r.comment(id='dbnpgmz')
         with self.recorder.use_cassette('TestNuker.test_action'):
             actor.action(post, 'TGB')
