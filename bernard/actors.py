@@ -412,16 +412,16 @@ class ToolboxNoteAdder(Actor):
             return 'l,{submission_id},{comment_id}'.format(
                 submission_id=thing.submission.id, comment_id=thing.id)
 
-    def __init__(self, text, level, buffer, *args, **kwargs):
+    def __init__(self, text, level, action_buffer, *args, **kwargs):
         """Initialize the ToolboxNoteAdder class."""
         super().__init__(*args, **kwargs)
         self.text = text
         self.level = level
-        self.buffer = buffer
+        self.action_buffer = action_buffer
 
     def action(self, post, mod):
         """Enqueue a note to add after pass through the reports."""
-        self.buffer.add(
+        self.action_buffer.add(
             BufferedNote(
                 str(post.author), self.level,
                 self.toolbox_link_string(post), mod, self.text,
@@ -487,11 +487,11 @@ class AutomodWatcher(Actor):
     ACTION_BUFFER = AutomodWatcherActionBuffer
     REQUIRED_TYPES = {'placeholder': str}
 
-    def __init__(self, placeholder, buffer, *args, **kwargs):
+    def __init__(self, placeholder, action_buffer, *args, **kwargs):
         """Initialize the AutomodWatcher class."""
         super().__init__(*args, **kwargs)
         self.placeholder = placeholder
-        self.buffer = buffer
+        self.action_buffer = action_buffer
 
     def _get_item(self, post):
         """Return item to add to automod."""
@@ -503,7 +503,7 @@ class AutomodWatcher(Actor):
         Actual wiki update performed in AutomodWatcherActionBuffer.after.
 
         """
-        self.buffer.add(self.placeholder, self._get_item(post))
+        self.action_buffer.add(self.placeholder, self._get_item(post))
 
 
 class AutomodDomainWatcher(AutomodWatcher):
