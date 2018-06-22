@@ -66,7 +66,9 @@ def parse_actor_config(subreddit, action_buffer_builder, config, target_types):
     params = config.params
     validate_actor_config(actor_class, params, target_types)
     if hasattr(actor_class, 'ACTION_BUFFER'):
-        params['buffer'] = action_buffer_builder.get(actor_class.ACTION_BUFFER)
+        params['action_buffer'] = action_buffer_builder.get(
+            actor_class.ACTION_BUFFER
+        )
     return actor_class(subreddit=subreddit, **params)
 
 
