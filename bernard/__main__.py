@@ -41,6 +41,7 @@ def main():
     database.commit()
 
     print("Loaded")
+    webhook_logger.emit("The bot is back up.")
 
     counter = 0
     while True:
