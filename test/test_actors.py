@@ -1,6 +1,7 @@
 import praw
 from .helper import BJOTest
 from bernard import actors
+from bernard.helpers import deserialize_thing_id
 
 
 class TestRule(BJOTest):
@@ -31,8 +32,9 @@ class TestRule(BJOTest):
 
     def test_parse(self):
         post = self.r.submission(id='5e7w80')
-        post_id = int('5e7w80', base=36)
-        self.assertFalse(self.actor._already_acted(3, post_id, 'TGB'))
+        post_fullname = 't3_5e7w80'
+        post_type, post_id = deserialize_thing_id(post_fullname)
+        self.assertFalse(self.actor._already_acted(post_fullname, 'TGB'))
         with self.recorder.use_cassette('TestRule.test_parse'):
             self.actor.parse('foo', 'TGB', post)
             post = self.r.submission(id='5e7w80')
@@ -42,8 +44,8 @@ class TestRule(BJOTest):
                              'WHERE target_type = 3 AND target_id = ?',
                              (post_id, ))
             summary, *_ = self.cur.fetchone()
-            self.assertTrue(self.actor._already_acted(3, post_id, 'TGB'))
-            self.assertFalse(self.actor._already_acted(3, post_id, 'BJO'))
+            self.assertTrue(self.actor._already_acted(post_fullname, 'TGB'))
+            self.assertFalse(self.actor._already_acted(post_fullname, 'BJO'))
             self.assertEqual('Remove', summary)
 
 

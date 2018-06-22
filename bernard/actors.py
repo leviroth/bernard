@@ -37,13 +37,28 @@ class Rule:
         self.cursor = database.cursor()
         self.subreddit = subreddit
 
-    def _already_acted(self, target_type, target_id, mod):
+    def _already_acted(self, fullname, mod):
+        target_type, target_id = helpers.deserialize_thing_id(fullname)
+
         self.cursor.execute('SELECT 1 FROM actions INNER JOIN users '
                             'ON actions.moderator = users.id '
                             'WHERE target_type = ? AND target_id = ? '
                             'AND users.username = ?',
                             (target_type, target_id, str(mod)))
-        return self.cursor.fetchone() is not None
+        result = self.cursor.fetchone() is not None
+
+        if result:
+            # Logging to see where we act on the same thing twice
+            self.cursor.execute('SELECT users.username FROM actions '
+                                'INNER JOIN users '
+                                'ON actions.moderator = users.id '
+                                'WHERE target_type = ? AND target_id = ?',
+                                (target_type, target_id))
+            previous = self.cursor.fetchall()
+            if len(previous) > 0:
+                logging.info("Saw repeated actions on %s", fullname)
+
+        return result
 
     def match(self, report, thing):
         """Return true if command matches and thing is the right type."""
@@ -54,9 +69,7 @@ class Rule:
         """Execute requested actions if report matches command."""
         if self.match(command, post):
             # Only act once on a given thing
-            target_type, target_id = helpers.deserialize_thing_id(
-                post.fullname)
-            if self._already_acted(target_type, target_id, mod):
+            if self._already_acted(post.fullname, mod):
                 return
 
             self.log_action(post, mod)
