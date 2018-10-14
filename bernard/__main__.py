@@ -34,8 +34,8 @@ def main():
     logging.getLogger().addHandler(webhook_logger)
 
     browsers = []
-    for config_file in Path(conf_dir).glob('*.yaml'):
-        sub_name, _ = config_file.name.rsplit('.', 1)
+    for config_file in Path(conf_dir).glob('*/bernard-config.yaml'):
+        sub_name, _ = config_file.parts[-2:]
         subreddit = reddit.subreddit(sub_name)
         browsers.append(load_yaml_config(database, subreddit, config_file))
     database.commit()
