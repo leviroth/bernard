@@ -272,9 +272,10 @@ class Notifier(Actor):
                             url=escaped_url)
 
         return (
-            "\n\n-----\n\nI am a bot. Please do not reply to this message, as "
-            "it will go unread. Instead, [contact the moderators]({}) with "
-            "questions or comments.").format(modmail_link)
+            "\n\n-----\n\nThis action was triggered by a human moderator. "
+            "Please do not reply to this message, as this account is a bot. "
+            "Instead, [contact the moderators]({}) with questions or comments."
+        ).format(modmail_link)
 
     def action(self, post, mod):
         """Add, distinguish, and (if top-level) sticky reply to target."""
