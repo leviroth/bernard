@@ -1,8 +1,15 @@
 cache: pip
 install:
   - yes | pip uninstall py pytest
-  - pip install flake8 pydocstyle
   - python setup.py install
+jobs:
+  include:
+    - install: pip install black flake8 pydocstyle
+      python: 3.6
+      script:
+        - black --check -l 79 .
+        - flake8
+        - pydocstyle bernard
 language: python
 matrix:
   fast_finish: true
@@ -11,6 +18,4 @@ python:
   - 3.6
 sudo: false
 script:
-  - flake8
-  - pydocstyle bernard
   - python setup.py test
