@@ -55,7 +55,7 @@ class SystemTest(BJOTest):
         assert any(
             isinstance(actor, Banner) for actor in browser.rules[0].actors)
 
-    def test_Modmailer(self):
+    def test_modmailer(self):
         browser = self.basic_test('Modmailer')
         assert any(
             isinstance(actor, Modmailer) for actor in browser.rules[0].actors)
