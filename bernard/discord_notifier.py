@@ -13,7 +13,7 @@ class DiscordHandler(Handler):
 
     def emit(self, record):
         """Emit record to the Discord webhook."""
-        json = {'content': self.format(record)}
+        json = {"content": self.format(record)}
         try:
             requests.post(self.webhook, json=json)
         except requests.RequestException:

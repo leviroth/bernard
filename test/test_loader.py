@@ -9,12 +9,12 @@ class TestValidation(BJOTest):
         super().setUp()
 
     def test_bad_param_type(self):
-        params = {'text': 3}
+        params = {"text": 3}
         with self.assertRaises(RuntimeError):
             validate_actor_config(Notifier, params, [])
 
     def test_good_param_type(self):
-        params = {'text': "foobar"}
+        params = {"text": "foobar"}
         validate_actor_config(Notifier, params, [])
 
     def test_bad_target_type(self):

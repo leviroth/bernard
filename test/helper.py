@@ -9,7 +9,8 @@ from betamax_serializers import pretty_json
 from urllib.parse import quote_plus
 
 import sys
-sys.path.append('bernard/')
+
+sys.path.append("bernard/")
 
 
 time.sleep = lambda _: None
@@ -17,62 +18,73 @@ time.sleep = lambda _: None
 
 def b64_string(input_string):
     """Return a base64 encoded string (not bytes) from input_string."""
-    return b64encode(input_string.encode('utf-8')).decode('utf-8')
+    return b64encode(input_string.encode("utf-8")).decode("utf-8")
 
 
 def filter_access_token(interaction, current_cassette):
     """Add Betamax placeholder to filter access token."""
-    request_uri = interaction.data['request']['uri']
-    response = interaction.data['response']
-    if ('api/v1/access_token' not in request_uri or
-            response['status']['code'] != 200):
+    request_uri = interaction.data["request"]["uri"]
+    response = interaction.data["response"]
+    if (
+        "api/v1/access_token" not in request_uri
+        or response["status"]["code"] != 200
+    ):
         return
-    body = response['body']['string']
+    body = response["body"]["string"]
     try:
-        token = json.loads(body)['access_token']
+        token = json.loads(body)["access_token"]
     except (KeyError, TypeError, ValueError):
         return
     current_cassette.placeholders.append(
-            betamax.cassette.cassette.Placeholder(
-                placeholder='<ACCESS_TOKEN>', replace=token))
+        betamax.cassette.cassette.Placeholder(
+            placeholder="<ACCESS_TOKEN>", replace=token
+        )
+    )
 
 
 class BJOTest(unittest.TestCase):
     def configure(self):
         self.r = praw.Reddit(
-            user_agent="Tests for BernardJOrtcutt - levimroth@gmail.com")
+            user_agent="Tests for BernardJOrtcutt - levimroth@gmail.com"
+        )
         placeholders = {
             x: getattr(self.r.config, x)
-            for x in ("client_id client_secret username password "
-                      "user_agent").split()}
-        placeholders['basic_auth'] = b64_string(
-            '{}:{}'.format(placeholders['client_id'],
-                           placeholders['client_secret']))
+            for x in (
+                "client_id client_secret username password " "user_agent"
+            ).split()
+        }
+        placeholders["basic_auth"] = b64_string(
+            "{}:{}".format(
+                placeholders["client_id"], placeholders["client_secret"]
+            )
+        )
         betamax.Betamax.register_serializer(pretty_json.PrettyJSONSerializer)
         with betamax.Betamax.configure() as config:
-            config.cassette_library_dir = 'tests/integration/cassettes'
-            config.default_cassette_options['serialize_with'] = 'prettyjson'
+            config.cassette_library_dir = "tests/integration/cassettes"
+            config.default_cassette_options["serialize_with"] = "prettyjson"
             config.before_record(callback=filter_access_token)
             for key, value in placeholders.items():
-                if key == 'password':
+                if key == "password":
                     value = quote_plus(value)
-                config.define_cassette_placeholder('<{}>'.format(key.upper()),
-                                                   value)
+                config.define_cassette_placeholder(
+                    "<{}>".format(key.upper()), value
+                )
 
-        self.subreddit = self.r.subreddit('thirdrealm')
-        self.db = sqlite3.connect(':memory:')
+        self.subreddit = self.r.subreddit("thirdrealm")
+        self.db = sqlite3.connect(":memory:")
         self.db.row_factory = sqlite3.Row
         self.cur = self.db.cursor()
-        with open('create_tables.sql') as f:
+        with open("create_tables.sql") as f:
             command = f.read()
         self.db.executescript(command)
 
     def betamax_configure(self):
         http = self.r._core._requestor._http
-        self.recorder = betamax.Betamax(http,
-                                        cassette_library_dir='test/cassettes')
+        self.recorder = betamax.Betamax(
+            http, cassette_library_dir="test/cassettes"
+        )
 
-        http.headers['Accept-Encoding'] = 'identity'
+        http.headers["Accept-Encoding"] = "identity"
 
     def setUp(self):
         self.configure()

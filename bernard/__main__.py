@@ -29,12 +29,12 @@ def main():
 
     logging.basicConfig()
     logging.raiseExceptions = False
-    webhook = reddit.config.custom['discord_webhook']
+    webhook = reddit.config.custom["discord_webhook"]
     webhook_logger = DiscordHandler(webhook, level=logging.ERROR)
     logging.getLogger().addHandler(webhook_logger)
 
     browsers = []
-    for config_file in Path(conf_dir).glob('*/bernard-config.yaml'):
+    for config_file in Path(conf_dir).glob("*/bernard-config.yaml"):
         sub_name, _ = config_file.parts[-2:]
         subreddit = reddit.subreddit(sub_name)
         browsers.append(load_yaml_config(database, subreddit, config_file))
