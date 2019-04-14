@@ -252,35 +252,19 @@ class Notifier(Actor):
 
     REQUIRED_TYPES = {'text': str}
     VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
+    FOOTER = (
+        "\n\n-----\n\nThis account is a bot that was dispatched by a human "
+        "moderator. Please do not reply, as your message will go unread."
+    )
 
     def __init__(self, text, *args, **kwargs):
         """Initialize the Notifier class."""
         super().__init__(*args, **kwargs)
         self.text = text
 
-    def _footer(self, url):
-        """Return footer identifying bot as such."""
-        base_reddit_url = self.subreddit._reddit.config.reddit_url
-        sub_name = self.subreddit.display_name
-
-        escaped_url = urllib.parse.quote(base_reddit_url + url)
-
-        modmail_link = ("{base_url}/message/compose?to=%2Fr%2F{sub_name}"
-                        "&message=Post%20in%20question:%20{url}").format(
-                            base_url=base_reddit_url,
-                            sub_name=sub_name,
-                            url=escaped_url)
-
-        return (
-            "\n\n-----\n\nThis action was triggered by a human moderator. "
-            "Please do not reply to this message, as this account is a bot. "
-            "Instead, [contact the moderators]({}) with questions or comments."
-        ).format(modmail_link)
-
     def action(self, post, mod):
         """Add, distinguish, and (if top-level) sticky reply to target."""
-        permalink = post.permalink
-        text = self.text + self._footer(permalink)
+        text = self.text + self.FOOTER
 
         try:
             result = post.reply(text)
