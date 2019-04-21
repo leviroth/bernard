@@ -286,8 +286,8 @@ class Notifier(Actor):
     REQUIRED_TYPES = {"text": str}
     VALID_TARGETS = [praw.models.Submission, praw.models.Comment]
     FOOTER = (
-        "\n\n-----\n\nThis account is a bot that was dispatched by a human "
-        "moderator. Please do not reply, as your message will go unread."
+        "\n\n-----\n\nThis is a shared account that is only used for "
+        "notifications. Please do not reply, as your message will go unread."
     )
 
     def __init__(self, text, *args, **kwargs):
