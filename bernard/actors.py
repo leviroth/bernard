@@ -539,11 +539,6 @@ class AutomodWatcherActionBuffer(ActionBuffer):
             content = content.replace(placeholder, new_text)
         return content
 
-    def add(self, placeholder, author):
-        """Add author to the placeholder's buffer."""
-        buffer = self.placeholder_dict.setdefault(placeholder, [])
-        buffer.append(author)
-
     def after(self):
         """Add accumulated list of users to AutoMod config."""
         if not any(self.placeholder_dict.values()):
@@ -558,6 +553,11 @@ class AutomodWatcherActionBuffer(ActionBuffer):
         else:
             for buffer in self.placeholder_dict.values():
                 buffer.clear()
+
+    def extend(self, placeholder, author):
+        """Add items to the placeholder's buffer."""
+        buffer = self.placeholder_dict.setdefault(placeholder, [])
+        buffer.extend(author)
 
 
 class AutomodWatcher(Actor):
@@ -582,7 +582,7 @@ class AutomodWatcher(Actor):
         Actual wiki update performed in AutomodWatcherActionBuffer.after.
 
         """
-        self.action_buffer.add(self.placeholder, self._get_item(post))
+        self.action_buffer.extend(self.placeholder, self._get_item(post))
 
 
 class AutomodDomainWatcher(AutomodWatcher):
@@ -592,7 +592,9 @@ class AutomodDomainWatcher(AutomodWatcher):
 
     def _get_item(self, post):
         """Return post's author."""
-        return post.domain
+        if post.is_self:
+            return []
+        return [post.domain]
 
 
 class AutomodUserWatcher(AutomodWatcher):
@@ -602,4 +604,4 @@ class AutomodUserWatcher(AutomodWatcher):
 
     def _get_item(self, post):
         """Return post's author."""
-        return str(post.author)
+        return [str(post.author)]
