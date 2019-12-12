@@ -111,13 +111,26 @@ class TestAutomodDomainWatcher(BJOTest):
         actor = actors.AutomodDomainWatcher(
             "test-placeholder", buffer, self.subreddit
         )
-        post = self.r.submission(id="5kgajm")
+        post = self.r.submission(id="e9i3sl")
         with self.recorder.use_cassette(
             "TestAutomodDomainWatcher.test_action"
         ):
             actor.action(post, "TGB")
             placeholder_buffer = buffer.placeholder_dict["test-placeholder"]
             self.assertEqual(1, len(placeholder_buffer))
+
+    def test_no_action_on_self_post(self):
+        buffer = actors.AutomodWatcherActionBuffer(self.subreddit)
+        actor = actors.AutomodDomainWatcher(
+            "test-placeholder", buffer, self.subreddit
+        )
+        post = self.r.submission(id="e9ibcm")
+        with self.recorder.use_cassette(
+            "TestAutomodDomainWatcher.test_no_action_on_self_post"
+        ):
+            actor.action(post, "BJO")
+            placeholder_buffer = buffer.placeholder_dict["test-placeholder"]
+            self.assertEqual(0, len(placeholder_buffer))
 
 
 class TestAutomodUserWatcher(BJOTest):
