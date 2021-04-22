@@ -1,7 +1,6 @@
 from contextlib import redirect_stderr
 from io import StringIO
 from pathlib import Path
-import pytest
 
 from bernard.actors import (
     AutomodDomainWatcher,
@@ -15,8 +14,6 @@ from bernard.actors import (
 from bernard.loader import load_yaml_config
 
 from .helper import BJOTest
-
-pytestmark = pytest.mark.system
 
 
 class SystemTest(BJOTest):
@@ -42,51 +39,39 @@ class SystemTest(BJOTest):
     def test_automod_domain_watcher(self):
         browser = self.basic_test("AutomodDomainWatcher")
         assert any(
-            isinstance(actor, AutomodDomainWatcher)
-            for actor in browser.rules[0].actors
+            isinstance(actor, AutomodDomainWatcher) for actor in browser.rules[0].actors
         )
 
     def test_automod_hybrid_watcher(self):
         browser = self.basic_test("AutomodHybridWatcher")
         assert any(
-            isinstance(actor, AutomodDomainWatcher)
-            for actor in browser.rules[0].actors
+            isinstance(actor, AutomodDomainWatcher) for actor in browser.rules[0].actors
         )
         assert any(
-            isinstance(actor, AutomodUserWatcher)
-            for actor in browser.rules[0].actors
+            isinstance(actor, AutomodUserWatcher) for actor in browser.rules[0].actors
         )
 
     def test_automod_user_watcher(self):
         browser = self.basic_test("AutomodUserWatcher")
         assert any(
-            isinstance(actor, AutomodUserWatcher)
-            for actor in browser.rules[0].actors
+            isinstance(actor, AutomodUserWatcher) for actor in browser.rules[0].actors
         )
 
     def test_banner(self):
         browser = self.basic_test("Banner")
-        assert any(
-            isinstance(actor, Banner) for actor in browser.rules[0].actors
-        )
+        assert any(isinstance(actor, Banner) for actor in browser.rules[0].actors)
 
     def test_modmailer(self):
         browser = self.basic_test("Modmailer")
-        assert any(
-            isinstance(actor, Modmailer) for actor in browser.rules[0].actors
-        )
+        assert any(isinstance(actor, Modmailer) for actor in browser.rules[0].actors)
 
     def test_notifier(self):
         browser = self.basic_test("Notifier")
-        assert any(
-            isinstance(actor, Notifier) for actor in browser.rules[0].actors
-        )
+        assert any(isinstance(actor, Notifier) for actor in browser.rules[0].actors)
 
     def test_nuker(self):
         browser = self.basic_test("Nuker")
-        assert any(
-            isinstance(actor, Nuker) for actor in browser.rules[0].actors
-        )
+        assert any(isinstance(actor, Nuker) for actor in browser.rules[0].actors)
 
     def test_removal(self):
         browser = self.basic_test("Removal")
@@ -95,6 +80,5 @@ class SystemTest(BJOTest):
     def test_usernote(self):
         browser = self.basic_test("Usernote")
         assert any(
-            isinstance(actor, ToolboxNoteAdder)
-            for actor in browser.rules[0].actors
+            isinstance(actor, ToolboxNoteAdder) for actor in browser.rules[0].actors
         )
