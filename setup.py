@@ -29,7 +29,7 @@ setup(
     install_requires=[
         "praw >= 5.0, <6.0",
         "prawdditions >= 0.1.2, <0.1.3",
-        "pyyaml >=3.12, <4.0",
+        "pyyaml >=5.4, <6.0",
     ],
     setup_requires=["pytest-runner >=2.1"],
     tests_require=[
